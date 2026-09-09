@@ -1,0 +1,38 @@
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Data & Audio Large Files
+data/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.tar.gz
+*.zip
+
+# Model Checkpoints & Logs
+checkpoints/
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.log
+runs/
+wandb/
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
