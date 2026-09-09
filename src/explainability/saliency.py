@@ -9,37 +9,40 @@ from typing import Dict, List, Any, Optional
 
 # Scientifically documented phonological transfer patterns in Indian English
 PHONOLOGICAL_TRANSFER_RULES = {
-    "Hindi": [
+    "Northern_Hindi": [
         {"phenomenon": "Dental/Retroflex Substitution", "description": "Alveolar stops /t, d/ realized as retroflex [ʈ, ɖ]."},
         {"phenomenon": "Vowel Monophthongization", "description": "Diphthongs /eɪ/ and /oʊ/ produced as pure long monophthongs [eː, oː]."},
         {"phenomenon": "Labiodental Approximant", "description": "Neutralization of distinction between /v/ and /w/ to [ʋ]."},
         {"phenomenon": "Aspiration / Epenthesis", "description": "Prothesis of [ɪ] or [ə] before s-clusters (e.g. 'school' -> [ɪskuːl])."},
     ],
-    "Tamil": [
+    "Central_MP": [
+        {"phenomenon": "Moraic Vowel Lengthening", "description": "Elongated vowel duration in phrase-final positions characteristic of Malwa/Central Hindi."},
+        {"phenomenon": "Intonation Pitch Modulation", "description": "Characteristic melodic rising-falling pitch contour on clause endings."},
+        {"phenomenon": "Softened Retroflex Flap", "description": "Lighter burst aspiration on intervocalic retroflex articulation [ɽ]."},
+    ],
+    "Western_Gujarati": [
+        {"phenomenon": "Breathy / Murmured Voice", "description": "Acoustic transfer of Gujarati murmured vowel phonation into English vowels."},
+        {"phenomenon": "Sibilant /z/ De-voicing", "description": "Realization of voiced alveolar fricative /z/ as affricate [dʒ] or voiceless [s]."},
+        {"phenomenon": "Retroflex Lateral Flap", "description": "Transfer of retroflex lateral [ɭ] in liquid positions."},
+    ],
+    "Southern_Tamil": [
         {"phenomenon": "Voicing Alternation", "description": "Intervocalic voicing of voiceless stops; lack of word-initial voiced stops."},
         {"phenomenon": "Epenthetic Vowel Addition", "description": "Insertion of high front vowel [i] before initial [s, r, l] or terminal [u]."},
         {"phenomenon": "Retroflex Lateral/Nasal", "description": "High retroflexion in liquids [ɭ] and nasals [ɳ]."},
         {"phenomenon": "Syllable-Timed Prosody", "description": "Even timing across syllables with reduced vowel reduction in unstressed positions."},
     ],
-    "Telugu": [
-        {"phenomenon": "Vowel Epenthesis", "description": "Terminal vowel addition [u] to consonant-ending English words."},
-        {"phenomenon": "Dental-Alveolar Contrast", "description": "Distinct articulation of dental stops influenced by Telugu phonology."},
-        {"phenomenon": "Aspiration Transfer", "description": "Aspiration patterns reflecting Telugu mahaprana consonant distinctions."},
+    # Legacy aliases
+    "Hindi": [
+        {"phenomenon": "Dental/Retroflex Substitution", "description": "Alveolar stops /t, d/ realized as retroflex [ʈ, ɖ]."},
+        {"phenomenon": "Vowel Monophthongization", "description": "Diphthongs /eɪ/ and /oʊ/ produced as pure long monophthongs [eː, oː]."},
     ],
-    "Malayalam": [
-        {"phenomenon": "Alveolar/Retroflex Rhotic Contrast", "description": "Distinction between tap [ɾ] and alveolar trill [r]."},
-        {"phenomenon": "Pre-vocalic Glides", "description": "Addition of [j] or [w] glides before initial vowels."},
-        {"phenomenon": "Heavy Syllable Weight Timing", "description": "Prosodic duration patterns tied to syllable weight rather than stress accent."},
+    "Tamil": [
+        {"phenomenon": "Epenthetic Vowel Addition", "description": "Insertion of high front vowel [i] before initial [s, r, l] or terminal [u]."},
+        {"phenomenon": "Syllable-Timed Prosody", "description": "Even timing across syllables with reduced vowel reduction in unstressed positions."},
     ],
-    "Bengali": [
-        {"phenomenon": "Vowel Rounding / Shift", "description": "Inherent vowel rounding; realization of /æ/ and /a/ towards [ɔ] or [ɛ]."},
-        {"phenomenon": "Sibilant Neutralization", "description": "Tendency to neutralize dental sibilant /s/ to palato-alveolar [ʃ]."},
-        {"phenomenon": "Non-rhoticity", "description": "Post-vocalic r-dropping with compensatory vowel lengthening."},
-    ],
-    "Marathi": [
-        {"phenomenon": "Retroflex Lateral Flap", "description": "Occurrence of retroflex lateral flap [ɭ]."},
-        {"phenomenon": "Affricate Split", "description": "Distinct dental-alveolar vs palato-alveolar affricate articulation."},
-        {"phenomenon": "Syllable Timing", "description": "Mora-influenced prosodic timing."},
+    "Gujarati": [
+        {"phenomenon": "Breathy / Murmured Voice", "description": "Acoustic transfer of Gujarati murmured vowel phonation into English vowels."},
+        {"phenomenon": "Sibilant /z/ De-voicing", "description": "Realization of /z/ as affricate [dʒ] or voiceless [s]."},
     ],
     "General": [
         {"phenomenon": "Syllable-Timed Rhythm", "description": "Equal duration allocated to syllables rather than stress-timed intervals."},

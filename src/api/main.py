@@ -28,14 +28,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CLASSES = ["Hindi", "Tamil", "Telugu", "Malayalam", "Bengali", "Marathi"]
+CLASSES = ["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil"]
 FAMILY_MAP = {
-    "Hindi": "Indo-Aryan",
-    "Bengali": "Indo-Aryan",
-    "Marathi": "Indo-Aryan",
-    "Tamil": "Dravidian",
-    "Telugu": "Dravidian",
-    "Malayalam": "Dravidian",
+    "Northern_Hindi": "Indo-Aryan (Delhi / UP)",
+    "Central_MP": "Indo-Aryan (Madhya Pradesh / Malwa / Bhopal)",
+    "Western_Gujarati": "Indo-Aryan (Gujarat)",
+    "Southern_Tamil": "Dravidian (Tamil Nadu)",
 }
 
 # In Review 1, models are in training/prototype phase.
@@ -116,46 +114,44 @@ async def predict_speech(file: UploadFile = File(...)):
     saliency = np.clip(base_saliency + noise, 0.0, 1.0)
     saliency_list = [round(float(s), 3) for s in saliency]
 
-    pred_lang = "Hindi"
+    pred_lang = "Central_MP"
     salient_regions = [
         SalientRegion(
             start_time_sec=1.4,
-            end_time_sec=1.9,
-            duration_sec=0.5,
-            salience_score=0.92,
-            linguistic_phenomenon="Vowel Monophthongization",
-            phonetic_explanation="Diphthong /eɪ/ in 'train' realized as pure long monophthong [eː].",
+            end_time_sec=2.1,
+            duration_sec=0.7,
+            salience_score=0.91,
+            linguistic_phenomenon="Moraic Vowel Lengthening",
+            phonetic_explanation="Elongated vowel duration on phrase-final syllables characteristic of Malwa/Central Hindi English.",
         ),
         SalientRegion(
             start_time_sec=3.2,
-            end_time_sec=3.6,
-            duration_sec=0.4,
-            salience_score=0.86,
-            linguistic_phenomenon="Alveolar Retroflexion",
-            phonetic_explanation="Alveolar stop /t/ in 'water' realized with retroflex articulation [ʈ].",
+            end_time_sec=3.8,
+            duration_sec=0.6,
+            salience_score=0.85,
+            linguistic_phenomenon="Intonation Pitch Modulation",
+            phonetic_explanation="Rising-falling melodic pitch contour at clause ending (Central Indian intonation).",
         ),
         SalientRegion(
             start_time_sec=5.1,
-            end_time_sec=5.7,
-            duration_sec=0.6,
+            end_time_sec=5.6,
+            duration_sec=0.5,
             salience_score=0.79,
-            linguistic_phenomenon="Syllable-Timed Prosody",
-            phonetic_explanation="Even timing ratio across unstressed syllables with reduced vowel centralisation.",
+            linguistic_phenomenon="Softened Retroflex Flap",
+            phonetic_explanation="Intervocalic retroflex articulation with moderated burst aspiration [ɽ].",
         ),
     ]
 
     return PredictionResponse(
         is_mock_prototype=True,
         predicted_influence=pred_lang,
-        language_family=FAMILY_MAP.get(pred_lang, "Indo-Aryan"),
-        confidence=0.82,
+        language_family=FAMILY_MAP.get(pred_lang, "Indo-Aryan (Central MP)"),
+        confidence=0.78,
         all_scores={
-            "Hindi": 0.82,
-            "Marathi": 0.08,
-            "Bengali": 0.04,
-            "Tamil": 0.03,
-            "Telugu": 0.02,
-            "Malayalam": 0.01,
+            "Central_MP": 0.78,
+            "Northern_Hindi": 0.12,
+            "Western_Gujarati": 0.06,
+            "Southern_Tamil": 0.04,
         },
         salient_regions=salient_regions,
         timestamps=timestamps,

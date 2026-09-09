@@ -26,7 +26,7 @@ def run_baseline_experiment(metadata_path: str = None, synthetic_fallback: bool 
             np.random.seed(42)
             n_samples = 300
             speakers = [f"spk_{i}" for i in range(1, 31)]  # 30 speakers
-            languages = ["Hindi", "Tamil", "Telugu", "Malayalam", "Bengali", "Marathi"]
+            languages = ["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil"]
 
             rows = []
             for i in range(n_samples):
@@ -52,7 +52,7 @@ def run_baseline_experiment(metadata_path: str = None, synthetic_fallback: bool 
     )
 
     # Feature preparation
-    target_names = sorted(df["target"].unique())
+    target_names = sorted(train_df["target"].unique())
     label_to_id = {name: i for i, name in enumerate(target_names)}
 
     print(f"Target classes ({len(target_names)}): {target_names}")

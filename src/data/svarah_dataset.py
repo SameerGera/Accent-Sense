@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Dataset management for AI4Bharat Svarah with strict speaker-disjoint splitting.
 """
@@ -5,11 +7,17 @@ Dataset management for AI4Bharat Svarah with strict speaker-disjoint splitting.
 import os
 import pandas as pd
 import numpy as np
-import torch
-from torch.utils.data import Dataset
-import torchaudio
 from sklearn.model_selection import StratifiedGroupKFold
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
+
+try:
+    import torch
+    from torch.utils.data import Dataset
+    import torchaudio
+except ImportError:
+    torch = None
+    torchaudio = None
+    Dataset = object
 
 # Major language family mapping for hierarchical analysis
 LANGUAGE_FAMILY_MAP = {
@@ -39,6 +47,39 @@ LANGUAGE_FAMILY_MAP = {
     "Bodo": "Tibeto-Burman",
     "Manipuri": "Tibeto-Burman",
 }
+
+
+# Regional 4-Class MVP Targets
+REGIONAL_4CLASS_TARGETS = [
+    "Northern_Hindi",
+    "Central_MP",
+    "Western_Gujarati",
+    "Southern_Tamil",
+]
+
+
+def label_regional_4class(row: pd.Series) -> str:
+    """
+    Labels a speaker into one of the 4 regional phonological anchors:
+    1. Central_MP: native_place_state == 'Madhya Pradesh' (Malwa/Bhopal region)
+    2. Western_Gujarati: primary_language == 'Gujarati' or native_place_state == 'Gujarat'
+    3. Southern_Tamil: primary_language == 'Tamil' or native_place_state == 'Tamil Nadu'
+    4. Northern_Hindi: primary_language == 'Hindi' (Delhi/UP/Northern Belt)
+    """
+    state = str(row.get("native_place_state", "")).strip()
+    lang = str(row.get("primary_language", "")).strip()
+
+    if "Madhya Pradesh" in state:
+        return "Central_MP"
+    elif lang == "Gujarati" or "Gujarat" in state:
+        return "Western_Gujarati"
+    elif lang == "Tamil" or "Tamil Nadu" in state:
+        return "Southern_Tamil"
+    elif lang == "Hindi" and any(s in state for s in ["Delhi", "Uttar Pradesh", "Haryana", "Rajasthan", "Uttarakhand", "Bihar"]):
+        return "Northern_Hindi"
+    elif lang == "Hindi":
+        return "Northern_Hindi"
+    return "Other"
 
 
 def build_speaker_disjoint_splits(
