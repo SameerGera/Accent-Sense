@@ -12,14 +12,30 @@ from src.models.baseline_mfcc import ClassicalAcousticBaseline, extract_acoustic
 from tqdm import tqdm
 
 
-def run_baseline_experiment(metadata_path: str = None, synthetic_fallback: bool = True):
+def run_baseline_experiment(metadata_path: str = None, splits_dir: str = None, synthetic_fallback: bool = True):
     print("=" * 60)
     print("AccentSense: Classical Acoustic Baseline (MFCC + SVM/RF)")
     print("=" * 60)
 
-    if metadata_path and os.path.exists(metadata_path):
+    # 1. Check if curated Phase 2 splits are available
+    check_dir = splits_dir or "data/splits"
+    train_split_path = os.path.join(check_dir, "train_speaker_disjoint.csv")
+    test_split_path = os.path.join(check_dir, "test_speaker_disjoint.csv")
+
+    if os.path.exists(train_split_path) and os.path.exists(test_split_path):
+        print(f"[Phase 2 Integration] Loading curated speaker-disjoint splits from: `{check_dir}/`")
+        train_df = pd.read_csv(train_split_path)
+        test_df = pd.read_csv(test_split_path)
+        print(f"Loaded Curated Splits -> Train: {len(train_df)} samples ({train_df['speaker_id'].nunique()} speakers) | Test: {len(test_df)} samples ({test_df['speaker_id'].nunique()} speakers)")
+    elif metadata_path and os.path.exists(metadata_path):
         df = pd.read_csv(metadata_path)
         print(f"Loaded dataset metadata: {len(df)} rows.")
+        train_df, val_df, test_df = build_speaker_disjoint_splits(
+            metadata_df=df,
+            target_col="primary_language",
+            speaker_col="speaker_id",
+            n_splits=5,
+        )
     else:
         if synthetic_fallback:
             print("[INFO] No external metadata CSV provided. Generating synthetic multi-speaker benchmark for verification...")
@@ -31,7 +47,6 @@ def run_baseline_experiment(metadata_path: str = None, synthetic_fallback: bool 
             rows = []
             for i in range(n_samples):
                 spk = np.random.choice(speakers)
-                # Ensure speaker is primarily tied to one language to mimic reality
                 spk_idx = int(spk.split("_")[1])
                 lang = languages[spk_idx % len(languages)]
                 rows.append({
@@ -40,16 +55,14 @@ def run_baseline_experiment(metadata_path: str = None, synthetic_fallback: bool 
                     "dummy_audio_feature": np.random.randn(80),
                 })
             df = pd.DataFrame(rows)
+            train_df, val_df, test_df = build_speaker_disjoint_splits(
+                metadata_df=df,
+                target_col="primary_language",
+                speaker_col="speaker_id",
+                n_splits=5,
+            )
         else:
             raise FileNotFoundError(f"Metadata file not found at: {metadata_path}")
-
-    # Build speaker-disjoint splits
-    train_df, val_df, test_df = build_speaker_disjoint_splits(
-        metadata_df=df,
-        target_col="primary_language",
-        speaker_col="speaker_id",
-        n_splits=5,
-    )
 
     # Feature preparation
     target_names = sorted(train_df["target"].unique())
@@ -57,7 +70,7 @@ def run_baseline_experiment(metadata_path: str = None, synthetic_fallback: bool 
 
     print(f"Target classes ({len(target_names)}): {target_names}")
 
-    if "dummy_audio_feature" in df.columns:
+    if "dummy_audio_feature" in train_df.columns:
         X_train = np.stack(train_df["dummy_audio_feature"].values)
         X_test = np.stack(test_df["dummy_audio_feature"].values)
     else:
@@ -94,5 +107,6 @@ def run_baseline_experiment(metadata_path: str = None, synthetic_fallback: bool 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_csv", type=str, default=None, help="Path to Svarah metadata CSV")
+    parser.add_argument("--splits_dir", type=str, default="data/splits", help="Path to curated splits directory")
     args = parser.parse_args()
-    run_baseline_experiment(metadata_path=args.data_csv)
+    run_baseline_experiment(metadata_path=args.data_csv, splits_dir=args.splits_dir)

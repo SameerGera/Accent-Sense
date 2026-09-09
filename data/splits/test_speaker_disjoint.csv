@@ -1,0 +1,97 @@
+speaker_id,duration,text,gender,age-group,native_place_state,native_place_district,primary_language,highest_qualification,job_category,audio_path,target
+spk_003,7.33,The train leaves the platform at six thirty in the evening.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_00.wav,Central_MP
+spk_003,7.81,The historical museum is open on all government holidays.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_01.wav,Central_MP
+spk_003,6.87,Water supply in this district is managed by the local corporation.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_02.wav,Central_MP
+spk_003,6.66,The historical museum is open on all government holidays.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_03.wav,Central_MP
+spk_003,11.98,Please confirm your ticket reservation before boarding.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_04.wav,Central_MP
+spk_003,8.56,Please confirm your ticket reservation before boarding.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_05.wav,Central_MP
+spk_003,10.38,The historical museum is open on all government holidays.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_06.wav,Central_MP
+spk_003,6.76,Water supply in this district is managed by the local corporation.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_07.wav,Central_MP
+spk_003,13.65,The train leaves the platform at six thirty in the evening.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_08.wav,Central_MP
+spk_003,8.5,We ordered fresh groceries and vegetables online yesterday.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_09.wav,Central_MP
+spk_003,9.86,Please confirm your ticket reservation before boarding.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_10.wav,Central_MP
+spk_003,13.69,Please confirm your ticket reservation before boarding.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_003_11.wav,Central_MP
+spk_007,7.2,The historical museum is open on all government holidays.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_00.wav,Central_MP
+spk_007,7.91,Customer service will assist you with digital payment verification.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_01.wav,Central_MP
+spk_007,8.63,The train leaves the platform at six thirty in the evening.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_02.wav,Central_MP
+spk_007,13.75,Water supply in this district is managed by the local corporation.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_03.wav,Central_MP
+spk_007,7.22,The historical museum is open on all government holidays.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_04.wav,Central_MP
+spk_007,11.41,Please confirm your ticket reservation before boarding.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_05.wav,Central_MP
+spk_007,7.56,We ordered fresh groceries and vegetables online yesterday.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_06.wav,Central_MP
+spk_007,7.4,The train leaves the platform at six thirty in the evening.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_07.wav,Central_MP
+spk_007,9.52,Please confirm your ticket reservation before boarding.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_08.wav,Central_MP
+spk_007,5.3,Water supply in this district is managed by the local corporation.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_09.wav,Central_MP
+spk_007,10.71,The train leaves the platform at six thirty in the evening.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_10.wav,Central_MP
+spk_007,6.3,Water supply in this district is managed by the local corporation.,Male,45-60,Madhya Pradesh,Indore,Hindi,Graduate,Full Time,data/audio/spk_007_11.wav,Central_MP
+spk_013,8.24,Water supply in this district is managed by the local corporation.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_00.wav,Western_Gujarati
+spk_013,7.67,We ordered fresh groceries and vegetables online yesterday.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_01.wav,Western_Gujarati
+spk_013,12.29,Please confirm your ticket reservation before boarding.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_02.wav,Western_Gujarati
+spk_013,10.5,The train leaves the platform at six thirty in the evening.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_03.wav,Western_Gujarati
+spk_013,9.6,The historical museum is open on all government holidays.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_04.wav,Western_Gujarati
+spk_013,10.65,The train leaves the platform at six thirty in the evening.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_05.wav,Western_Gujarati
+spk_013,10.85,The historical museum is open on all government holidays.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_06.wav,Western_Gujarati
+spk_013,12.16,Water supply in this district is managed by the local corporation.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_07.wav,Western_Gujarati
+spk_013,12.98,The historical museum is open on all government holidays.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_08.wav,Western_Gujarati
+spk_013,10.21,The historical museum is open on all government holidays.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_09.wav,Western_Gujarati
+spk_013,7.95,Water supply in this district is managed by the local corporation.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_10.wav,Western_Gujarati
+spk_013,9.88,Please confirm your ticket reservation before boarding.,Male,18-30,Gujarat,Vadodara,Gujarati,Graduate,Full Time,data/audio/spk_013_11.wav,Western_Gujarati
+spk_017,6.47,We ordered fresh groceries and vegetables online yesterday.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_00.wav,Northern_Hindi
+spk_017,5.24,Please confirm your ticket reservation before boarding.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_01.wav,Northern_Hindi
+spk_017,12.21,Customer service will assist you with digital payment verification.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_02.wav,Northern_Hindi
+spk_017,8.49,The historical museum is open on all government holidays.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_03.wav,Northern_Hindi
+spk_017,6.16,The historical museum is open on all government holidays.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_04.wav,Northern_Hindi
+spk_017,9.91,We ordered fresh groceries and vegetables online yesterday.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_05.wav,Northern_Hindi
+spk_017,10.63,We ordered fresh groceries and vegetables online yesterday.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_06.wav,Northern_Hindi
+spk_017,13.65,The train leaves the platform at six thirty in the evening.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_07.wav,Northern_Hindi
+spk_017,6.86,Please confirm your ticket reservation before boarding.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_08.wav,Northern_Hindi
+spk_017,5.62,We ordered fresh groceries and vegetables online yesterday.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_09.wav,Northern_Hindi
+spk_017,5.16,Water supply in this district is managed by the local corporation.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_10.wav,Northern_Hindi
+spk_017,10.56,Customer service will assist you with digital payment verification.,Female,18-30,Delhi,New Delhi,Hindi,Graduate,Full Time,data/audio/spk_017_11.wav,Northern_Hindi
+spk_018,12.6,We ordered fresh groceries and vegetables online yesterday.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_00.wav,Northern_Hindi
+spk_018,8.07,Please confirm your ticket reservation before boarding.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_01.wav,Northern_Hindi
+spk_018,7.54,Customer service will assist you with digital payment verification.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_02.wav,Northern_Hindi
+spk_018,11.24,The historical museum is open on all government holidays.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_03.wav,Northern_Hindi
+spk_018,10.66,Please confirm your ticket reservation before boarding.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_04.wav,Northern_Hindi
+spk_018,5.35,We ordered fresh groceries and vegetables online yesterday.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_05.wav,Northern_Hindi
+spk_018,12.23,The train leaves the platform at six thirty in the evening.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_06.wav,Northern_Hindi
+spk_018,9.93,The train leaves the platform at six thirty in the evening.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_07.wav,Northern_Hindi
+spk_018,11.76,We ordered fresh groceries and vegetables online yesterday.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_08.wav,Northern_Hindi
+spk_018,13.91,Customer service will assist you with digital payment verification.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_09.wav,Northern_Hindi
+spk_018,8.35,The historical museum is open on all government holidays.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_10.wav,Northern_Hindi
+spk_018,10.06,Water supply in this district is managed by the local corporation.,Male,18-30,Delhi,North Delhi,Hindi,Graduate,Full Time,data/audio/spk_018_11.wav,Northern_Hindi
+spk_019,11.66,We ordered fresh groceries and vegetables online yesterday.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_00.wav,Northern_Hindi
+spk_019,5.93,Customer service will assist you with digital payment verification.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_01.wav,Northern_Hindi
+spk_019,9.81,The train leaves the platform at six thirty in the evening.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_02.wav,Northern_Hindi
+spk_019,12.44,The historical museum is open on all government holidays.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_03.wav,Northern_Hindi
+spk_019,7.68,Water supply in this district is managed by the local corporation.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_04.wav,Northern_Hindi
+spk_019,8.5,Customer service will assist you with digital payment verification.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_05.wav,Northern_Hindi
+spk_019,13.63,The historical museum is open on all government holidays.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_06.wav,Northern_Hindi
+spk_019,5.82,Customer service will assist you with digital payment verification.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_07.wav,Northern_Hindi
+spk_019,13.55,The historical museum is open on all government holidays.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_08.wav,Northern_Hindi
+spk_019,10.16,The historical museum is open on all government holidays.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_09.wav,Northern_Hindi
+spk_019,5.83,We ordered fresh groceries and vegetables online yesterday.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_10.wav,Northern_Hindi
+spk_019,7.96,The historical museum is open on all government holidays.,Female,18-30,Delhi,South Delhi,Hindi,Graduate,Full Time,data/audio/spk_019_11.wav,Northern_Hindi
+spk_033,6.39,Water supply in this district is managed by the local corporation.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_00.wav,Southern_Tamil
+spk_033,7.89,The historical museum is open on all government holidays.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_01.wav,Southern_Tamil
+spk_033,5.47,Customer service will assist you with digital payment verification.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_02.wav,Southern_Tamil
+spk_033,9.09,Please confirm your ticket reservation before boarding.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_03.wav,Southern_Tamil
+spk_033,5.57,We ordered fresh groceries and vegetables online yesterday.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_04.wav,Southern_Tamil
+spk_033,6.82,The historical museum is open on all government holidays.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_05.wav,Southern_Tamil
+spk_033,5.79,Please confirm your ticket reservation before boarding.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_06.wav,Southern_Tamil
+spk_033,5.02,We ordered fresh groceries and vegetables online yesterday.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_07.wav,Southern_Tamil
+spk_033,10.36,The train leaves the platform at six thirty in the evening.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_08.wav,Southern_Tamil
+spk_033,8.71,Water supply in this district is managed by the local corporation.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_09.wav,Southern_Tamil
+spk_033,5.96,Water supply in this district is managed by the local corporation.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_10.wav,Southern_Tamil
+spk_033,12.48,We ordered fresh groceries and vegetables online yesterday.,Female,30-45,Tamil Nadu,Chennai,Tamil,Graduate,Full Time,data/audio/spk_033_11.wav,Southern_Tamil
+spk_034,11.58,We ordered fresh groceries and vegetables online yesterday.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_00.wav,Southern_Tamil
+spk_034,6.85,The train leaves the platform at six thirty in the evening.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_01.wav,Southern_Tamil
+spk_034,5.6,Customer service will assist you with digital payment verification.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_02.wav,Southern_Tamil
+spk_034,5.43,Water supply in this district is managed by the local corporation.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_03.wav,Southern_Tamil
+spk_034,6.26,We ordered fresh groceries and vegetables online yesterday.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_04.wav,Southern_Tamil
+spk_034,11.75,The train leaves the platform at six thirty in the evening.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_05.wav,Southern_Tamil
+spk_034,6.47,The historical museum is open on all government holidays.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_06.wav,Southern_Tamil
+spk_034,6.68,We ordered fresh groceries and vegetables online yesterday.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_07.wav,Southern_Tamil
+spk_034,10.99,Customer service will assist you with digital payment verification.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_08.wav,Southern_Tamil
+spk_034,13.17,Please confirm your ticket reservation before boarding.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_09.wav,Southern_Tamil
+spk_034,12.89,The train leaves the platform at six thirty in the evening.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_10.wav,Southern_Tamil
+spk_034,11.15,The train leaves the platform at six thirty in the evening.,Female,30-45,Tamil Nadu,Coimbatore,Tamil,Graduate,Full Time,data/audio/spk_034_11.wav,Southern_Tamil

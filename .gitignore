@@ -13,7 +13,9 @@ __pycache__/
 .mypy_cache/
 
 # Data & Audio Large Files
-data/
+data/*
+!data/splits/
+!data/splits/*
 *.wav
 *.mp3
 *.flac
