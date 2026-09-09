@@ -1,0 +1,354 @@
+{
+  "classes_evaluated": [
+    "Northern_Hindi",
+    "Central_MP",
+    "Western_Gujarati",
+    "Southern_Tamil"
+  ],
+  "sample_evaluations": [
+    {
+      "audio_label": "Test Anchor: Northern_Hindi",
+      "true_class": "Northern_Hindi",
+      "predicted_class": "Northern_Hindi",
+      "prediction_confidence": 0.2663,
+      "all_probabilities": {
+        "Northern_Hindi": 0.2663,
+        "Central_MP": 0.2563,
+        "Western_Gujarati": 0.2556,
+        "Southern_Tamil": 0.2218
+      },
+      "num_frames": 200,
+      "total_duration_sec": 4.0,
+      "attribution_method": "gradient",
+      "salient_regions": [
+        {
+          "start_time_sec": 1.32,
+          "end_time_sec": 1.48,
+          "duration_sec": 0.16,
+          "salience_score": 1.0,
+          "mean_salience": 0.956,
+          "linguistic_phenomenon": "Dental/Retroflex Substitution",
+          "phonetic_explanation": "Alveolar stops /t, d/ realized as retroflex [\u0288, \u0256] with elevated acoustic burst energy."
+        },
+        {
+          "start_time_sec": 2.42,
+          "end_time_sec": 2.66,
+          "duration_sec": 0.24,
+          "salience_score": 0.991,
+          "mean_salience": 0.935,
+          "linguistic_phenomenon": "Vowel Monophthongization",
+          "phonetic_explanation": "Diphthongs /e\u026a/ and /o\u028a/ produced as pure long monophthongs [e\u02d0, o\u02d0]."
+        },
+        {
+          "start_time_sec": 0.54,
+          "end_time_sec": 0.78,
+          "duration_sec": 0.24,
+          "salience_score": 0.989,
+          "mean_salience": 0.959,
+          "linguistic_phenomenon": "Labiodental Approximant Merger",
+          "phonetic_explanation": "Neutralization of distinction between labiodental fricative /v/ and labiovelar approximant /w/ to [\u028b]."
+        },
+        {
+          "start_time_sec": 3.52,
+          "end_time_sec": 3.62,
+          "duration_sec": 0.1,
+          "salience_score": 0.949,
+          "mean_salience": 0.93,
+          "linguistic_phenomenon": "Aspiration / Prothetic Epenthesis",
+          "phonetic_explanation": "Prothesis of [\u026a] or [\u0259] before initial s-clusters (e.g., 'station' -> [\u026aste\u02d0\u0283\u0259n])."
+        }
+      ],
+      "faithfulness": {
+        "target_class_idx": 0,
+        "deletion_fractions": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5
+        ],
+        "salient_deletion_curve": [
+          0.2663,
+          0.2608,
+          0.2609,
+          0.2581,
+          0.2543,
+          0.2588
+        ],
+        "random_deletion_curve": [
+          0.2663,
+          0.2632,
+          0.2609,
+          0.2613,
+          0.2577,
+          0.2544
+        ],
+        "audc_salient": 0.1297,
+        "audc_random": 0.1303,
+        "delta_audc": 0.0007,
+        "faithfulness_ratio": 0.0051,
+        "is_faithful": true
+      }
+    },
+    {
+      "audio_label": "Test Anchor: Central_MP",
+      "true_class": "Central_MP",
+      "predicted_class": "Northern_Hindi",
+      "prediction_confidence": 0.2641,
+      "all_probabilities": {
+        "Northern_Hindi": 0.2641,
+        "Central_MP": 0.2536,
+        "Western_Gujarati": 0.2584,
+        "Southern_Tamil": 0.2238
+      },
+      "num_frames": 200,
+      "total_duration_sec": 4.0,
+      "attribution_method": "gradient",
+      "salient_regions": [
+        {
+          "start_time_sec": 1.24,
+          "end_time_sec": 1.48,
+          "duration_sec": 0.24,
+          "salience_score": 1.0,
+          "mean_salience": 0.928,
+          "linguistic_phenomenon": "Dental/Retroflex Substitution",
+          "phonetic_explanation": "Alveolar stops /t, d/ realized as retroflex [\u0288, \u0256] with elevated acoustic burst energy."
+        },
+        {
+          "start_time_sec": 3.0,
+          "end_time_sec": 3.12,
+          "duration_sec": 0.12,
+          "salience_score": 0.937,
+          "mean_salience": 0.914,
+          "linguistic_phenomenon": "Vowel Monophthongization",
+          "phonetic_explanation": "Diphthongs /e\u026a/ and /o\u028a/ produced as pure long monophthongs [e\u02d0, o\u02d0]."
+        },
+        {
+          "start_time_sec": 0.54,
+          "end_time_sec": 0.76,
+          "duration_sec": 0.22,
+          "salience_score": 0.929,
+          "mean_salience": 0.906,
+          "linguistic_phenomenon": "Labiodental Approximant Merger",
+          "phonetic_explanation": "Neutralization of distinction between labiodental fricative /v/ and labiovelar approximant /w/ to [\u028b]."
+        },
+        {
+          "start_time_sec": 2.46,
+          "end_time_sec": 2.62,
+          "duration_sec": 0.16,
+          "salience_score": 0.924,
+          "mean_salience": 0.895,
+          "linguistic_phenomenon": "Aspiration / Prothetic Epenthesis",
+          "phonetic_explanation": "Prothesis of [\u026a] or [\u0259] before initial s-clusters (e.g., 'station' -> [\u026aste\u02d0\u0283\u0259n])."
+        }
+      ],
+      "faithfulness": {
+        "target_class_idx": 0,
+        "deletion_fractions": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5
+        ],
+        "salient_deletion_curve": [
+          0.2641,
+          0.2625,
+          0.2588,
+          0.2568,
+          0.256,
+          0.2526
+        ],
+        "random_deletion_curve": [
+          0.2641,
+          0.261,
+          0.2592,
+          0.2585,
+          0.2552,
+          0.2525
+        ],
+        "audc_salient": 0.1292,
+        "audc_random": 0.1292,
+        "delta_audc": -0.0,
+        "faithfulness_ratio": -0.0001,
+        "is_faithful": false
+      }
+    },
+    {
+      "audio_label": "Test Anchor: Western_Gujarati",
+      "true_class": "Western_Gujarati",
+      "predicted_class": "Northern_Hindi",
+      "prediction_confidence": 0.2643,
+      "all_probabilities": {
+        "Northern_Hindi": 0.2643,
+        "Central_MP": 0.2556,
+        "Western_Gujarati": 0.2596,
+        "Southern_Tamil": 0.2205
+      },
+      "num_frames": 200,
+      "total_duration_sec": 4.0,
+      "attribution_method": "gradient",
+      "salient_regions": [
+        {
+          "start_time_sec": 1.22,
+          "end_time_sec": 1.48,
+          "duration_sec": 0.26,
+          "salience_score": 1.0,
+          "mean_salience": 0.954,
+          "linguistic_phenomenon": "Dental/Retroflex Substitution",
+          "phonetic_explanation": "Alveolar stops /t, d/ realized as retroflex [\u0288, \u0256] with elevated acoustic burst energy."
+        },
+        {
+          "start_time_sec": 2.48,
+          "end_time_sec": 2.64,
+          "duration_sec": 0.16,
+          "salience_score": 0.998,
+          "mean_salience": 0.953,
+          "linguistic_phenomenon": "Vowel Monophthongization",
+          "phonetic_explanation": "Diphthongs /e\u026a/ and /o\u028a/ produced as pure long monophthongs [e\u02d0, o\u02d0]."
+        },
+        {
+          "start_time_sec": 3.02,
+          "end_time_sec": 3.12,
+          "duration_sec": 0.1,
+          "salience_score": 0.959,
+          "mean_salience": 0.939,
+          "linguistic_phenomenon": "Labiodental Approximant Merger",
+          "phonetic_explanation": "Neutralization of distinction between labiodental fricative /v/ and labiovelar approximant /w/ to [\u028b]."
+        },
+        {
+          "start_time_sec": 0.36,
+          "end_time_sec": 0.76,
+          "duration_sec": 0.4,
+          "salience_score": 0.957,
+          "mean_salience": 0.925,
+          "linguistic_phenomenon": "Aspiration / Prothetic Epenthesis",
+          "phonetic_explanation": "Prothesis of [\u026a] or [\u0259] before initial s-clusters (e.g., 'station' -> [\u026aste\u02d0\u0283\u0259n])."
+        }
+      ],
+      "faithfulness": {
+        "target_class_idx": 0,
+        "deletion_fractions": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5
+        ],
+        "salient_deletion_curve": [
+          0.2643,
+          0.2606,
+          0.257,
+          0.255,
+          0.2527,
+          0.2509
+        ],
+        "random_deletion_curve": [
+          0.2643,
+          0.2607,
+          0.2587,
+          0.258,
+          0.2541,
+          0.2512
+        ],
+        "audc_salient": 0.1283,
+        "audc_random": 0.1289,
+        "delta_audc": 0.0006,
+        "faithfulness_ratio": 0.005,
+        "is_faithful": true
+      }
+    },
+    {
+      "audio_label": "Test Anchor: Southern_Tamil",
+      "true_class": "Southern_Tamil",
+      "predicted_class": "Northern_Hindi",
+      "prediction_confidence": 0.2632,
+      "all_probabilities": {
+        "Northern_Hindi": 0.2632,
+        "Central_MP": 0.2557,
+        "Western_Gujarati": 0.2597,
+        "Southern_Tamil": 0.2215
+      },
+      "num_frames": 200,
+      "total_duration_sec": 4.0,
+      "attribution_method": "gradient",
+      "salient_regions": [
+        {
+          "start_time_sec": 1.24,
+          "end_time_sec": 1.5,
+          "duration_sec": 0.26,
+          "salience_score": 1.0,
+          "mean_salience": 0.931,
+          "linguistic_phenomenon": "Dental/Retroflex Substitution",
+          "phonetic_explanation": "Alveolar stops /t, d/ realized as retroflex [\u0288, \u0256] with elevated acoustic burst energy."
+        },
+        {
+          "start_time_sec": 2.48,
+          "end_time_sec": 2.64,
+          "duration_sec": 0.16,
+          "salience_score": 0.983,
+          "mean_salience": 0.938,
+          "linguistic_phenomenon": "Vowel Monophthongization",
+          "phonetic_explanation": "Diphthongs /e\u026a/ and /o\u028a/ produced as pure long monophthongs [e\u02d0, o\u02d0]."
+        },
+        {
+          "start_time_sec": 3.5,
+          "end_time_sec": 3.64,
+          "duration_sec": 0.14,
+          "salience_score": 0.962,
+          "mean_salience": 0.922,
+          "linguistic_phenomenon": "Labiodental Approximant Merger",
+          "phonetic_explanation": "Neutralization of distinction between labiodental fricative /v/ and labiovelar approximant /w/ to [\u028b]."
+        },
+        {
+          "start_time_sec": 0.58,
+          "end_time_sec": 0.76,
+          "duration_sec": 0.18,
+          "salience_score": 0.944,
+          "mean_salience": 0.913,
+          "linguistic_phenomenon": "Aspiration / Prothetic Epenthesis",
+          "phonetic_explanation": "Prothesis of [\u026a] or [\u0259] before initial s-clusters (e.g., 'station' -> [\u026aste\u02d0\u0283\u0259n])."
+        }
+      ],
+      "faithfulness": {
+        "target_class_idx": 0,
+        "deletion_fractions": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5
+        ],
+        "salient_deletion_curve": [
+          0.2632,
+          0.2589,
+          0.257,
+          0.2534,
+          0.2606,
+          0.2447
+        ],
+        "random_deletion_curve": [
+          0.2632,
+          0.2607,
+          0.2589,
+          0.2587,
+          0.2554,
+          0.2519
+        ],
+        "audc_salient": 0.1284,
+        "audc_random": 0.1291,
+        "delta_audc": 0.0007,
+        "faithfulness_ratio": 0.0057,
+        "is_faithful": true
+      }
+    }
+  ],
+  "mean_audc_salient": 0.1289,
+  "mean_audc_random": 0.1294,
+  "mean_delta_audc": 0.0005,
+  "faithfulness_pass_rate": 0.75
+}

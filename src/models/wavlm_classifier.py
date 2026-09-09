@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import WavLMModel, Wav2Vec2Model, AutoModel
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Any
 
 
 class AttentiveStatisticsPooling(nn.Module):
@@ -62,14 +62,18 @@ class WavLMForL1Influence(nn.Module):
     def __init__(
         self,
         pretrained_model_name: str = "microsoft/wavlm-base-plus",
-        num_classes: int = 6,
+        num_classes: int = 4,
         freeze_encoder: bool = True,
         unfreeze_top_k_layers: int = 2,
         dropout_p: float = 0.3,
+        config: Optional[Any] = None,
     ):
         super().__init__()
         self.model_name = pretrained_model_name
-        self.backbone = AutoModel.from_pretrained(pretrained_model_name)
+        if config is not None:
+            self.backbone = AutoModel.from_config(config)
+        else:
+            self.backbone = AutoModel.from_pretrained(pretrained_model_name)
         hidden_dim = self.backbone.config.hidden_size
 
         # Freeze strategy

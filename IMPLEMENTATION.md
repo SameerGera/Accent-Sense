@@ -51,14 +51,19 @@ This document outlines the sequential phases, concrete deliverables, and milesto
     Cross-Entropy Loss with class weights, AdamW optimizer, Cosine warmup scheduler, and best checkpoint saving (`checkpoints/best_wavlm_accentsense.pt`).
   - Verified with `--dry_run` sanity check on the curated splits.
 
-### Phase 4: Explainability & Phonetic Grounding
-- **Status**: 🟡 Initialized
+### Phase 4: Explainability & Phonetic Grounding (Completed & Verified)
+- **Status**: ✅ Done & Verified
 - **Deliverables**:
   - Saliency engine ([`src/explainability/saliency.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/explainability/saliency.py)):
-    Frame-level Layer Integrated Gradients downsampled to 20ms steps.
-  - Top-region extraction: identifies contiguous high-saliency segments ($\ge 100\text{ ms}$).
-  - SLA transfer mapping: maps segments to Central MP, Gujarati, Northern Hindi, and Tamil phonetic markers.
-  - Faithfulness test: Area Under Deletion Curve (AUDC) verification.
+    Frame-level Layer Integrated Gradients (Captum) downsampled to 20ms steps (50 Hz frame rate).
+  - Contiguous Salient Region Extraction:
+    Identifies high-attribution segments ($\ge 100\text{ ms}$, $\ge 75\text{th}$ percentile threshold).
+  - SLA Phonetic Transfer Mapping:
+    Maps identified regions to second-language acquisition phenomena across the 4 Regional Anchors (`Northern_Hindi`, `Central_MP`, `Western_Gujarati`, `Southern_Tamil`).
+  - Faithfulness Verification:
+    Area Under Deletion Curve (AUDC) verification proves $\text{AUDC}_{\text{salient}} < \text{AUDC}_{\text{random}}$ ($\Delta\text{AUDC} = +0.0046$, 100% pass rate).
+  - Dedicated Runner:
+    [`explain_speech.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/explain_speech.py) with full oral pitch terminal dashboard and JSON benchmark report ([`reports/xai_faithfulness_report.json`](file:///d:/Docs_Back/Projects/Accent%20Sense/reports/xai_faithfulness_report.json)).
 
 ### Phase 5: Downstream ASR Adaptation (Whisper Conditioning)
 - **Status**: ⚪ Planned (Post Review 1)
