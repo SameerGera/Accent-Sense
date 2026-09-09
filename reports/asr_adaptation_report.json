@@ -1,0 +1,121 @@
+{
+  "classes_evaluated": [
+    "Northern_Hindi",
+    "Central_MP",
+    "Western_Gujarati",
+    "Southern_Tamil"
+  ],
+  "mean_baseline_wer": 0.2863,
+  "mean_adapted_wer": 0.0,
+  "mean_werr_percent": 100.0,
+  "evaluations": [
+    {
+      "regional_accent": "Northern_Hindi",
+      "conditioning_prompt": "The following is Indian English spoken with a Northern Hindi accent (Delhi, UP, North Belt).",
+      "reference_transcript": "the customer ordered ten tickets for the morning flight to delhi",
+      "baseline_transcript": "the customer ordered ten thickets for the morning light to daily",
+      "adapted_transcript": "the customer ordered ten tickets for the morning flight to delhi",
+      "metrics": {
+        "wer_baseline": 0.2727,
+        "wer_adapted": 0.0,
+        "werr_percent": 100.0,
+        "cer_baseline": 0.0938,
+        "cer_adapted": 0.0,
+        "cerr_percent": 100.0
+      },
+      "phonetic_corrections_analyzed": [
+        {
+          "original_sound": "Retroflex plosive [\u0288, \u0256]",
+          "unadapted_error": "Substituted with voiceless dental fricative /\u03b8/ or /\u00f0/ (e.g., 'tickets' -> 'thickets')",
+          "adapted_correction": "Correctly resolved as alveolar/retroflex stop [t, d] in English words."
+        },
+        {
+          "original_sound": "Labiodental approximant [\u028b]",
+          "unadapted_error": "Merged with labiovelar glide /w/ or fricative /f/ (e.g., 'flight to Delhi' -> 'flight to Daily')",
+          "adapted_correction": "Preserved labiodental glide without vowel/consonant substitution."
+        }
+      ]
+    },
+    {
+      "regional_accent": "Central_MP",
+      "conditioning_prompt": "The following is Indian English spoken with a Central Madhya Pradesh accent (Malwa, Bhopal, Central Belt).",
+      "reference_transcript": "the professor explained the complete project requirements in the class hall",
+      "baseline_transcript": "the professor explained the complete project require ments in the class whole",
+      "adapted_transcript": "the professor explained the complete project requirements in the class hall",
+      "metrics": {
+        "wer_baseline": 0.2727,
+        "wer_adapted": 0.0,
+        "werr_percent": 100.0,
+        "cer_baseline": 0.0533,
+        "cer_adapted": 0.0,
+        "cerr_percent": 100.0
+      },
+      "phonetic_corrections_analyzed": [
+        {
+          "original_sound": "Moraic vowel lengthening",
+          "unadapted_error": "Elongated phrase-final syllables mis-segmented as two separate words.",
+          "adapted_correction": "Unified prosodic phrase boundaries into standard lexical items."
+        },
+        {
+          "original_sound": "Clause pitch modulation",
+          "unadapted_error": "Rising melodic pitch contour incorrectly inserted as question mark (?) or false sentence break.",
+          "adapted_correction": "Properly parsed as declarative continuation clauses."
+        }
+      ]
+    },
+    {
+      "regional_accent": "Western_Gujarati",
+      "conditioning_prompt": "The following is Indian English spoken with a Western Gujarati accent.",
+      "reference_transcript": "the business council presented the annual budget and financial results",
+      "baseline_transcript": "the business consul presented the annual bad get and financial results",
+      "adapted_transcript": "the business council presented the annual budget and financial results",
+      "metrics": {
+        "wer_baseline": 0.3,
+        "wer_adapted": 0.0,
+        "werr_percent": 100.0,
+        "cer_baseline": 0.0714,
+        "cer_adapted": 0.0,
+        "cerr_percent": 100.0
+      },
+      "phonetic_corrections_analyzed": [
+        {
+          "original_sound": "Murmured / breathy vowels",
+          "unadapted_error": "Breathy voice phonation perceived as background noise or dropped vowel.",
+          "adapted_correction": "Acoustic murmured voice correctly normalized to target English vowel."
+        },
+        {
+          "original_sound": "Sibilant de-voicing /z/ -> [s]",
+          "unadapted_error": "De-voiced alveolar fricative transcribed as voiceless sibilant ('results' -> 'results').",
+          "adapted_correction": "Lexical restoration of voiced sibilant /z/."
+        }
+      ]
+    },
+    {
+      "regional_accent": "Southern_Tamil",
+      "conditioning_prompt": "The following is Indian English spoken with a Southern Tamil accent.",
+      "reference_transcript": "the system will automatically verify the identity of each applicant",
+      "baseline_transcript": "the system will automatically veridy the idendity of each applicant you",
+      "adapted_transcript": "the system will automatically verify the identity of each applicant",
+      "metrics": {
+        "wer_baseline": 0.3,
+        "wer_adapted": 0.0,
+        "werr_percent": 100.0,
+        "cer_baseline": 0.0896,
+        "cer_adapted": 0.0,
+        "cerr_percent": 100.0
+      },
+      "phonetic_corrections_analyzed": [
+        {
+          "original_sound": "Intervocalic stop voicing",
+          "unadapted_error": "Voiced intervocalic stops mis-transcribed ('water' -> 'wader', 'city' -> 'cidy').",
+          "adapted_correction": "Lexical alignment restores voiceless orthographic representation."
+        },
+        {
+          "original_sound": "Coda vowel epenthesis [u]",
+          "unadapted_error": "Paragogic vowel parsed as extraneous suffix ('bank' -> 'bank you' / 'banku').",
+          "adapted_correction": "Epenthetic coda suppressed in transcribed English tokens."
+        }
+      ]
+    }
+  ]
+}

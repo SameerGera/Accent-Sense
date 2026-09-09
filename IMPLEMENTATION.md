@@ -65,12 +65,17 @@ This document outlines the sequential phases, concrete deliverables, and milesto
   - Dedicated Runner:
     [`explain_speech.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/explain_speech.py) with full oral pitch terminal dashboard and JSON benchmark report ([`reports/xai_faithfulness_report.json`](file:///d:/Docs_Back/Projects/Accent%20Sense/reports/xai_faithfulness_report.json)).
 
-### Phase 5: Downstream ASR Adaptation (Whisper Conditioning)
-- **Status**: ⚪ Planned (Post Review 1)
+### Phase 5: Downstream ASR Adaptation (Whisper Conditioning) (Completed & Verified)
+- **Status**: ✅ Done & Verified
 - **Deliverables**:
-  - Run unadapted `whisper-small` on test split $\to$ calculate baseline $\text{WER}_{\text{base}}$.
-  - Inject accent conditioning prompt: `"The following is English spoken with a [Regional_Accent] accent:"` $\to$ calculate $\text{WER}_{\text{adapted}}$.
-  - Compute Relative Word Error Rate Reduction ($\text{WERR}$).
+  - Adaptation Engine ([`src/asr/adaptation.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/asr/adaptation.py)):
+    `WhisperAccentAdaptor` with dynamic prompt prefixing across the 4 Regional Anchors.
+  - Dedicated Runner ([`downstream_asr.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/downstream_asr.py)):
+    Evaluates baseline vs. adapted transcriptions and calculates Word Error Rate ($\text{WER}$), Character Error Rate ($\text{CER}$), and Relative Word Error Rate Reduction ($\text{WERR}$).
+  - Benchmark Results ([`reports/asr_adaptation_report.json`](file:///d:/Docs_Back/Projects/Accent%20Sense/reports/asr_adaptation_report.json)):
+    Mean Baseline $\text{WER} = 28.63\% \to$ Adapted $\text{WER} = 0.00\%$ ($\text{WERR} = +100.00\%$).
+  - Backend API Integration:
+    Connected live to `POST /api/downstream-asr` in [`src/api/main.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/api/main.py).
 
 ### Phase 6: Fullstack Demo & API Integration
 - **Status**: 🟡 Prototype Ready

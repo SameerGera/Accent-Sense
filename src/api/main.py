@@ -159,18 +159,33 @@ async def predict_speech(file: UploadFile = File(...)):
     )
 
 
+from src.asr.adaptation import WhisperAccentAdaptor
+
+asr_adaptor = WhisperAccentAdaptor()
+
+
 @app.post("/api/downstream-asr", response_model=DownstreamASRResponse)
-async def downstream_asr_demo(detected_accent: str = Form("Hindi")):
+async def downstream_asr_demo(
+    detected_accent: str = Form("Central_MP"),
+    reference_text: Optional[str] = Form(None),
+):
     """
     Demonstrates downstream speech recognition adaptation using the predicted accent profile.
     """
+    bench = asr_adaptor.benchmark_sample(
+        regional_accent=detected_accent,
+        reference_text=reference_text,
+    )
+    corrections = [
+        f"{c['original_sound']}: {c['unadapted_error']} -> {c['adapted_correction']}"
+        for c in bench.get("phonetic_corrections_analyzed", [])
+    ]
+    family_desc = FAMILY_MAP.get(detected_accent, "Indian English")
+
     return DownstreamASRResponse(
-        baseline_transcript="The customer ordered ten tickets for the flight to Delhi.",
-        accent_adapted_transcript="The customer ordered ten tickets for the flight to Delhi.",
-        adaptation_strategy="Whisper Prompt Prefixing [Detected: Hindi-influenced Indian English]",
-        detected_accent_profile=f"{detected_accent} (Indo-Aryan family)",
-        phonetic_corrections_noted=[
-            "Resolved retroflex stop [ʈ] in 'tickets' without mistranscribing as 'thickets'",
-            "Accurately parsed dental glide [ʋ] in 'flight' / 'very' without phonetic drop",
-        ],
+        baseline_transcript=bench["baseline_transcript"],
+        accent_adapted_transcript=bench["adapted_transcript"],
+        adaptation_strategy=f"Whisper Prompt Conditioning [{bench['conditioning_prompt']}]",
+        detected_accent_profile=f"{detected_accent} ({family_desc})",
+        phonetic_corrections_noted=corrections,
     )
