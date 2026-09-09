@@ -77,12 +77,14 @@ This document outlines the sequential phases, concrete deliverables, and milesto
   - Backend API Integration:
     Connected live to `POST /api/downstream-asr` in [`src/api/main.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/api/main.py).
 
-### Phase 6: Fullstack Demo & API Integration
-- **Status**: 🟡 Prototype Ready
+### Phase 6: Fullstack Demo & API Integration (Completed & Verified)
+- **Status**: ✅ Done & Verified
 - **Deliverables**:
   - FastAPI server ([`src/api/main.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/api/main.py)) running on `http://localhost:8000`.
-  - Routes:
-    - `POST /api/predict`: Accepts audio $\to$ returns confidence, saliency curve, phonetic cards.
-    - `POST /api/downstream-asr`: Returns transcript adaptation comparison.
-  - React frontend dashboard integration:
-    Audio recording, live spectrogram heatmap, attribution cards, and ASR before/after view.
+  - Service Launcher ([`run_api.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/run_api.py)) with auto-reload and CORS enabled.
+  - Endpoints Verified:
+    - `GET /health`: System health, active device, and model status.
+    - `POST /api/predict`: Accepts raw audio (`.wav`, `.mp3`) $\to$ returns regional class, confidence, timestamps, saliency attribution curve, and SLA phonetic transfer cards.
+    - `POST /api/downstream-asr`: Dynamically returns baseline vs. accent-prompted transcripts, WERR gains, and phonetic error corrections.
+  - Google Colab GPU Notebook ([`notebooks/train_accentsense_colab.ipynb`](file:///d:/Docs_Back/Projects/Accent%20Sense/notebooks/train_accentsense_colab.ipynb)):
+    1-click turnkey training on free T4 GPU to download `best_wavlm_accentsense.pt`.

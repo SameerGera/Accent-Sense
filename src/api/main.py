@@ -69,15 +69,43 @@ class DownstreamASRResponse(BaseModel):
     phonetic_corrections_noted: List[str]
 
 
+from src.models.wavlm_classifier import WavLMForL1Influence
+from src.explainability.saliency import compute_temporal_saliency, map_explanations_to_phonetics
+
+CHECKPOINT_PATH = os.path.join("checkpoints", "best_wavlm_accentsense.pt")
+wavlm_model: Optional[WavLMForL1Influence] = None
+
+
+def get_live_model() -> Optional[WavLMForL1Influence]:
+    global wavlm_model
+    if wavlm_model is not None:
+        return wavlm_model
+    if os.path.exists(CHECKPOINT_PATH):
+        try:
+            print(f"[API] Loading trained checkpoint from: {CHECKPOINT_PATH}")
+            model = WavLMForL1Influence(num_classes=len(CLASSES), freeze_encoder=True)
+            state = torch.load(CHECKPOINT_PATH, map_location=device)
+            model.load_state_dict(state, strict=False)
+            model.eval()
+            model.to(device)
+            wavlm_model = model
+            return wavlm_model
+        except Exception as e:
+            print(f"[API Warning] Failed to load checkpoint: {e}")
+            return None
+    return None
+
+
 @app.get("/health")
 def health_check():
+    live_model = get_live_model()
     return {
         "status": "healthy",
         "service": "AccentSense ML Engine",
         "device": device,
-        "model_loaded": MODEL_LOADED,
+        "model_loaded": live_model is not None,
         "supported_classes": CLASSES,
-        "phase": "Review 1 - Prototype & Training Setup",
+        "phase": "Review 1 - Prototype & Inference Service",
     }
 
 
@@ -93,9 +121,18 @@ async def predict_speech(file: UploadFile = File(...)):
     audio_bytes = await file.read()
     
     try:
-        waveform, sr = torchaudio.load(io.BytesIO(audio_bytes))
-        if waveform.shape[0] > 1:
-            waveform = torch.mean(waveform, dim=0, keepdim=True)
+        import soundfile as sf
+        audio_io = io.BytesIO(audio_bytes)
+        try:
+            data, sr = sf.read(audio_io)
+            if data.ndim > 1:
+                data = np.mean(data, axis=-1)
+            waveform = torch.tensor(data, dtype=torch.float32).unsqueeze(0)
+        except Exception:
+            audio_io.seek(0)
+            waveform, sr = torchaudio.load(audio_io)
+            if waveform.shape[0] > 1:
+                waveform = torch.mean(waveform, dim=0, keepdim=True)
         if sr != 16000:
             resampler = torchaudio.transforms.Resample(sr, 16000)
             waveform = resampler(waveform)
@@ -103,8 +140,48 @@ async def predict_speech(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Audio processing error: {str(e)}")
 
-    # For Review 1: When trained model checkpoint is not yet present, return scientifically grounded prototype outputs
-    # Clearly tagged with is_mock_prototype: True to ensure absolute academic honesty!
+    live_model = get_live_model()
+    if live_model is not None:
+        try:
+            saliency_result = compute_temporal_saliency(
+                model=live_model,
+                waveform=waveform.squeeze(0),
+                device=device,
+                method="gradient",  # fast for web latency (<500ms)
+            )
+            pred_idx = saliency_result["predicted_class_index"]
+            pred_lang = CLASSES[pred_idx]
+            pred_confidence = float(saliency_result["probabilities"][pred_idx])
+            all_scores = {CLASSES[i]: round(float(p), 4) for i, p in enumerate(saliency_result["probabilities"])}
+            annotated_regions = map_explanations_to_phonetics(
+                language_name=pred_lang,
+                salient_regions=saliency_result["salient_regions"],
+            )
+            regions_pydantic = [
+                SalientRegion(
+                    start_time_sec=r["start_time_sec"],
+                    end_time_sec=r["end_time_sec"],
+                    duration_sec=r["duration_sec"],
+                    salience_score=r["salience_score"],
+                    linguistic_phenomenon=r["linguistic_phenomenon"],
+                    phonetic_explanation=r["phonetic_explanation"],
+                )
+                for r in annotated_regions
+            ]
+            return PredictionResponse(
+                is_mock_prototype=False,
+                predicted_influence=pred_lang,
+                language_family=FAMILY_MAP.get(pred_lang, "Indian English"),
+                confidence=round(pred_confidence, 4),
+                all_scores=all_scores,
+                salient_regions=regions_pydantic,
+                timestamps=saliency_result["timestamps"],
+                saliency_curve=saliency_result["saliency_curve"],
+            )
+        except Exception as e:
+            print(f"[API Inference Error] Fallback to calibrated prototype: {e}")
+
+    # Fallback to calibrated prototype when trained checkpoint is not yet present
     num_frames = int(duration_sec * 50)
     timestamps = [round(i * 0.02, 2) for i in range(num_frames)]
     
