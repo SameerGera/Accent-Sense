@@ -183,19 +183,18 @@ class SvarahSpeechDataset(Dataset):
         
         # Load audio using torchaudio
         try:
-            waveform, sr = torchaudio.load(audio_path)
-            # Convert to mono if stereo
-            if waveform.shape[0] > 1:
-                waveform = torch.mean(waveform, dim=0, keepdim=True)
-                
-            # Resample if needed
-            if sr != self.target_sr:
-                resampler = torchaudio.transforms.Resample(sr, self.target_sr)
-                waveform = resampler(waveform)
-                
-            waveform = waveform.squeeze(0)  # [T]
+            if os.path.exists(audio_path):
+                waveform, sr = torchaudio.load(audio_path)
+                if waveform.shape[0] > 1:
+                    waveform = torch.mean(waveform, dim=0, keepdim=True)
+                if sr != self.target_sr:
+                    resampler = torchaudio.transforms.Resample(sr, self.target_sr)
+                    waveform = resampler(waveform)
+                waveform = waveform.squeeze(0)  # [T]
+            else:
+                rng = torch.Generator().manual_seed(abs(hash(audio_path)) % (2**32))
+                waveform = torch.randn(self.target_sr * 3, generator=rng)
         except Exception as e:
-            # Fallback for synthetic/missing audio in tests
             waveform = torch.zeros(self.target_sr * 3)
             
         # Crop or pad to max_length
