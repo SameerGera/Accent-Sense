@@ -1,0 +1,12 @@
+{
+  "name": "accentsense",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Explainable Native Language Influence Detection in Indian English Speech",
+  "scripts": {
+    "dev": "npm --prefix Frontend run dev",
+    "build": "npm --prefix Frontend run build",
+    "preview": "npm --prefix Frontend run preview",
+    "typecheck": "npm --prefix Frontend run typecheck"
+  }
+}

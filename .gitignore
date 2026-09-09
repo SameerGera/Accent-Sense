@@ -1,0 +1,68 @@
+# ==============================================================================
+# AccentSense Root Git Ignore
+# Covers both Backend (Python/Torch) and Frontend (Node/Vite)
+# ==============================================================================
+
+# Node / Frontend
+node_modules/
+Frontend/node_modules/
+dist/
+Frontend/dist/
+dist-ssr/
+Frontend/dist-ssr/
+*.local
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python Virtual Environments
+.venv/
+Backend/.venv/
+env/
+venv/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+Backend/__pycache__/
+Backend/**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Audio Data & Large Binaries
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.tar.gz
+*.zip
+Backend/data/*
+!Backend/data/splits/
+!Backend/data/splits/*
+
+# Neural Network Checkpoints & Weights
+Backend/checkpoints/*.pt
+Backend/checkpoints/*.pth
+Backend/checkpoints/*.onnx
+Backend/checkpoints/*.joblib
+runs/
+wandb/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

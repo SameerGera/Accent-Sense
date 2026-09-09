@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import Hero3D from '@/components/Hero3D';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000';
 const MARKER_COLORS = ['#E879F9', '#8B5CF6', '#22D3EE', '#34D399'];
 
 // The 4 Regional Phonological Anchors aligned with AccentSense ML taxonomy
