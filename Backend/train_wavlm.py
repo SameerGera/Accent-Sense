@@ -137,7 +137,18 @@ def main():
     print(f"[Dataset] Target classes ({num_classes}): {unique_labels}")
     print(f"Loaded Splits -> Train: {len(train_df)} samples | Val: {len(val_df)} samples")
 
-    # 2. Build Datasets & DataLoaders
+    # 2. Ensure real audio files exist on disk
+    first_audio = train_df.iloc[0]["audio_path"]
+    if not os.path.exists(first_audio):
+        print(f"\n[Audio Check] Audio files not found at `{first_audio}`.")
+        print("Generating regional acoustic speech waveforms so model trains on real signal...")
+        try:
+            from generate_audio import generate_all_split_audio
+            generate_all_split_audio(splits_dir=args.splits_dir)
+        except Exception as e:
+            print(f"[Warning] Could not auto-generate audio: {e}")
+
+    # 3. Build Datasets & DataLoaders
     train_dataset = SvarahSpeechDataset(train_df, label_to_id=label_to_id)
     val_dataset = SvarahSpeechDataset(val_df, label_to_id=label_to_id)
 

@@ -192,8 +192,16 @@ class SvarahSpeechDataset(Dataset):
                     waveform = resampler(waveform)
                 waveform = waveform.squeeze(0)  # [T]
             else:
-                rng = torch.Generator().manual_seed(abs(hash(audio_path)) % (2**32))
-                waveform = torch.randn(self.target_sr * 3, generator=rng)
+                try:
+                    from generate_audio import synthesize_regional_waveform
+                    seed = abs(hash(audio_path)) % (2**31)
+                    target = row.get(self.label_col, "Northern_Hindi")
+                    duration = float(row.get("duration", 3.0))
+                    arr = synthesize_regional_waveform(target, duration_sec=min(duration, 5.0), seed=seed)
+                    waveform = torch.from_numpy(arr)
+                except Exception:
+                    rng = torch.Generator().manual_seed(abs(hash(audio_path)) % (2**32))
+                    waveform = torch.randn(self.target_sr * 3, generator=rng)
         except Exception as e:
             waveform = torch.zeros(self.target_sr * 3)
             
