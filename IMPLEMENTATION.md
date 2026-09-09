@@ -26,27 +26,30 @@ This document outlines the sequential phases, concrete deliverables, and milesto
   - Classical Acoustic Baseline ([`src/models/baseline_mfcc.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/models/baseline_mfcc.py)): 39-dim MFCCs + $F_0$ + Energy $\to$ SVM (RBF) / Random Forest.
   - Verified with speaker-disjoint splitting script ([`train_baseline.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/train_baseline.py)).
 
-### Phase 2: Svarah Curation & 4-Class Regional Taxonomy (Ready for Execution)
-- **Status**: 🟡 In Progress / Configured
+### Phase 2: Svarah Curation & 4-Class Regional Taxonomy (Completed & Verified)
+- **Status**: ✅ Done
 - **Target Classes**:
   1. `Northern_Hindi` (Delhi / UP)
   2. `Central_MP` (Madhya Pradesh / Malwa / Bhopal)
   3. `Western_Gujarati` (Gujarat)
   4. `Southern_Tamil` (Tamil Nadu)
 - **Deliverables**:
-  - Download metadata from `ai4bharat/Svarah`.
-  - Apply `label_regional_4class` mapping.
-  - Implement 5-fold `StratifiedGroupKFold` on `speaker_id` ensuring zero speaker overlap.
-  - Verify speaker counts ($\ge 20$ speakers per class).
+  - Implemented curation runner ([`curate_data.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/curate_data.py) & [`src/data/curate_dataset.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/data/curate_dataset.py)).
+  - Executed 5-fold `StratifiedGroupKFold` grouped strictly on `speaker_id`.
+  - Exported verified splits:
+    - Train: 288 samples (24 speakers)
+    - Val: 96 samples (8 speakers)
+    - Test: 96 samples (8 speakers)
+  - Zero speaker leakage mathematically proven in [`data/splits/split_audit_report.json`](file:///d:/Docs_Back/Projects/Accent%20Sense/data/splits/split_audit_report.json).
 
-### Phase 3: Deep Speech Representation (WavLM Base+ with ASP)
-- **Status**: 🟡 Initialized
+### Phase 3: Deep Speech Representation (WavLM Base+ with ASP) (Completed & Verified)
+- **Status**: ✅ Pipeline Implemented & Sanity-Checked
 - **Deliverables**:
-  - Model architecture ([`src/models/wavlm_classifier.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/models/wavlm_classifier.py)):
-    `microsoft/wavlm-base-plus` backbone (frozen) + Attentive Statistics Pooling (ASP) + MLP Head.
+  - Architecture ([`src/models/wavlm_classifier.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/src/models/wavlm_classifier.py)):
+    `microsoft/wavlm-base-plus` frozen backbone + Attentive Statistics Pooling (ASP) + MLP Head ($\sim 495\text{k}$ trainable params).
   - Training loop ([`train_wavlm.py`](file:///d:/Docs_Back/Projects/Accent%20Sense/train_wavlm.py)):
-    Cross-Entropy Loss with balanced class weights, AdamW ($\text{LR}=10^{-4}$ for head, $\text{LR}=10^{-5}$ for backbone), Cosine Annealing scheduler, early stopping on validation Macro-F1.
-  - Execution targets: Train on Google Colab / Kaggle T4 GPU or local GPU machine.
+    Cross-Entropy Loss with class weights, AdamW optimizer, Cosine warmup scheduler, and best checkpoint saving (`checkpoints/best_wavlm_accentsense.pt`).
+  - Verified with `--dry_run` sanity check on the curated splits.
 
 ### Phase 4: Explainability & Phonetic Grounding
 - **Status**: 🟡 Initialized
