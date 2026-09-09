@@ -1,33 +1,70 @@
 """
 AccentSense FastAPI Backend Service
-Provides endpoints for audio upload, L1 influence prediction, explainability saliency, and downstream ASR comparison.
+Provides endpoints for audio upload, L1 influence prediction,
+explainability saliency, and downstream ASR comparison.
 """
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
 import io
+import logging
 import os
+from typing import Dict, List, Optional
+
+import numpy as np
+import soundfile as sf
 import torch
 import torchaudio
-import numpy as np
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
+from src.asr.adaptation import WhisperAccentAdaptor
+from src.explainability.saliency import (
+    compute_temporal_saliency,
+    map_explanations_to_phonetics,
+)
+from src.models.wavlm_classifier import WavLMForL1Influence
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logger = logging.getLogger("accentsense")
+
+# ---------------------------------------------------------------------------
+# Rate Limiter
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address)
+
+# ---------------------------------------------------------------------------
+# App
+# ---------------------------------------------------------------------------
 app = FastAPI(
     title="AccentSense API",
     description="Explainable Native Language Influence Detection and ASR Adaptation Service",
-    version="0.1.0",
+    version="0.2.0",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Enable CORS for React frontend
+# ---------------------------------------------------------------------------
+# CORS — configurable via CORS_ORIGINS env var (comma-separated)
+# ---------------------------------------------------------------------------
+_default_origins = "http://localhost:5173,http://localhost:3000"
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", _default_origins).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 CLASSES = ["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil"]
 FAMILY_MAP = {
     "Northern_Hindi": "Indo-Aryan (Delhi / UP)",
@@ -36,9 +73,14 @@ FAMILY_MAP = {
     "Southern_Tamil": "Dravidian (Tamil Nadu)",
 }
 
-# In Review 1, models are in training/prototype phase.
-MODEL_LOADED = False
+MAX_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MB
+MAX_AUDIO_DURATION_SEC = 30.0
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# ---------------------------------------------------------------------------
+# Pydantic Models
+# ---------------------------------------------------------------------------
 
 
 class SalientRegion(BaseModel):
@@ -69,20 +111,22 @@ class DownstreamASRResponse(BaseModel):
     phonetic_corrections_noted: List[str]
 
 
-from src.models.wavlm_classifier import WavLMForL1Influence
-from src.explainability.saliency import compute_temporal_saliency, map_explanations_to_phonetics
-
+# ---------------------------------------------------------------------------
+# Model Loading
+# ---------------------------------------------------------------------------
 CHECKPOINT_PATH = os.path.join("checkpoints", "best_wavlm_accentsense.pt")
 wavlm_model: Optional[WavLMForL1Influence] = None
+asr_adaptor = WhisperAccentAdaptor()
 
 
 def get_live_model() -> Optional[WavLMForL1Influence]:
+    """Load trained checkpoint lazily on first call, cache for subsequent requests."""
     global wavlm_model
     if wavlm_model is not None:
         return wavlm_model
     if os.path.exists(CHECKPOINT_PATH):
         try:
-            print(f"[API] Loading trained checkpoint from: {CHECKPOINT_PATH}")
+            logger.info("Loading trained checkpoint from: %s", CHECKPOINT_PATH)
             model = WavLMForL1Influence(num_classes=len(CLASSES), freeze_encoder=True)
             state = torch.load(CHECKPOINT_PATH, map_location=device)
             model.load_state_dict(state, strict=False)
@@ -90,10 +134,15 @@ def get_live_model() -> Optional[WavLMForL1Influence]:
             model.to(device)
             wavlm_model = model
             return wavlm_model
-        except Exception as e:
-            print(f"[API Warning] Failed to load checkpoint: {e}")
+        except (RuntimeError, KeyError, FileNotFoundError) as e:
+            logger.warning("Failed to load checkpoint: %s", e)
             return None
     return None
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
 
 @app.get("/health")
@@ -110,36 +159,54 @@ def health_check():
 
 
 @app.post("/api/predict", response_model=PredictionResponse)
-async def predict_speech(file: UploadFile = File(...)):
+@limiter.limit("10/minute")
+async def predict_speech(request: Request, file: UploadFile = File(...)):
     """
-    Receives an audio file (10-20 sec speech) and returns the predicted
+    Receives an audio file (5-30 sec speech) and returns the predicted
     native-language influence profile with temporal saliency explanations.
     """
     if not file.filename.lower().endswith((".wav", ".mp3", ".ogg", ".flac", ".m4a")):
-        raise HTTPException(status_code=400, detail="Invalid audio file format. Please upload WAV/MP3/OGG/FLAC.")
+        raise HTTPException(status_code=400, detail="Invalid audio file format. Please upload WAV/MP3/OGG/FLAC/M4A.")
 
     audio_bytes = await file.read()
-    
+
+    # --- Guard: file size ---
+    if len(audio_bytes) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large ({len(audio_bytes) / 1024 / 1024:.1f} MB). Maximum is {MAX_UPLOAD_BYTES // 1024 // 1024} MB.",
+        )
+
+    # --- Decode audio ---
+    audio_io = io.BytesIO(audio_bytes)
     try:
-        import soundfile as sf
-        audio_io = io.BytesIO(audio_bytes)
+        data, sr = sf.read(audio_io)
+        if data.ndim > 1:
+            data = np.mean(data, axis=-1)
+        waveform = torch.tensor(data, dtype=torch.float32).unsqueeze(0)
+    except (sf.LibsndfileError, RuntimeError):
         try:
-            data, sr = sf.read(audio_io)
-            if data.ndim > 1:
-                data = np.mean(data, axis=-1)
-            waveform = torch.tensor(data, dtype=torch.float32).unsqueeze(0)
-        except Exception:
             audio_io.seek(0)
             waveform, sr = torchaudio.load(audio_io)
             if waveform.shape[0] > 1:
                 waveform = torch.mean(waveform, dim=0, keepdim=True)
-        if sr != 16000:
-            resampler = torchaudio.transforms.Resample(sr, 16000)
-            waveform = resampler(waveform)
-        duration_sec = waveform.shape[1] / 16000.0
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Audio processing error: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Audio decoding error: {e}")
 
+    if sr != 16000:
+        resampler = torchaudio.transforms.Resample(sr, 16000)
+        waveform = resampler(waveform)
+
+    duration_sec = waveform.shape[1] / 16000.0
+
+    # --- Guard: audio duration ---
+    if duration_sec > MAX_AUDIO_DURATION_SEC:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Audio too long ({duration_sec:.1f}s). Maximum duration is {MAX_AUDIO_DURATION_SEC:.0f}s.",
+        )
+
+    # --- Live model inference ---
     live_model = get_live_model()
     if live_model is not None:
         try:
@@ -179,13 +246,12 @@ async def predict_speech(file: UploadFile = File(...)):
                 saliency_curve=saliency_result["saliency_curve"],
             )
         except Exception as e:
-            print(f"[API Inference Error] Fallback to calibrated prototype: {e}")
+            logger.warning("Inference error, falling back to prototype: %s", e)
 
-    # Fallback to calibrated prototype when trained checkpoint is not yet present
+    # --- Fallback: calibrated prototype (no trained checkpoint) ---
     num_frames = int(duration_sec * 50)
     timestamps = [round(i * 0.02, 2) for i in range(num_frames)]
-    
-    # Generate realistic saliency pattern
+
     base_saliency = np.sin(np.linspace(0, 3 * np.pi, num_frames)) ** 2
     noise = np.random.normal(0, 0.05, num_frames)
     saliency = np.clip(base_saliency + noise, 0.0, 1.0)
@@ -236,13 +302,10 @@ async def predict_speech(file: UploadFile = File(...)):
     )
 
 
-from src.asr.adaptation import WhisperAccentAdaptor
-
-asr_adaptor = WhisperAccentAdaptor()
-
-
 @app.post("/api/downstream-asr", response_model=DownstreamASRResponse)
+@limiter.limit("10/minute")
 async def downstream_asr_demo(
+    request: Request,
     detected_accent: str = Form("Central_MP"),
     reference_text: Optional[str] = Form(None),
 ):

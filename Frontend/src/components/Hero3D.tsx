@@ -17,13 +17,20 @@ function makeWave(seed: number, n = 90): number[] {
 export default function Hero3D() {
   const ref = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ rx: -18, ry: 28 });
-  const [t, setT] = useState(0);
+  const ringRefs = useRef<(HTMLDivElement | null)[]>([]);
   const wave = makeWave(7);
 
   useEffect(() => {
     let raf = 0;
+    let t = 0;
     const loop = () => {
-      setT((v) => v + 0.012);
+      t += 0.012;
+      for (let i = 0; i < 3; i++) {
+        const el = ringRefs.current[i];
+        if (el) {
+          el.style.transform = `rotateZ(${t * (20 + i * 10)}deg)`;
+        }
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -65,6 +72,9 @@ export default function Hero3D() {
         {[0, 1, 2].map((i) => (
           <div
             key={i}
+            ref={(el) => {
+              ringRefs.current[i] = el;
+            }}
             className="absolute rounded-full border preserve-3d"
             style={{
               width: 220 + i * 90,
@@ -72,7 +82,6 @@ export default function Hero3D() {
               marginLeft: -(110 + i * 45),
               marginTop: -(110 + i * 45),
               borderColor: `${MARKER_COLORS[i]}55`,
-              transform: `rotateZ(${t * (20 + i * 10)}deg)`,
               boxShadow: `0 0 40px ${MARKER_COLORS[i]}22`,
             }}
           >
@@ -151,11 +160,11 @@ export default function Hero3D() {
           {wave.map((v, i) => (
             <div
               key={i}
-              className="flex-1 rounded-sm"
+              className="flex-1 rounded-sm transition-opacity"
               style={{
                 height: `${v * 100}%`,
                 background: `linear-gradient(to top, ${MARKER_COLORS[i % 3]}88, ${MARKER_COLORS[i % 3]})`,
-                opacity: 0.5 + 0.5 * Math.abs(Math.sin(t * 2 + i * 0.2)),
+                opacity: 0.6 + (i % 3) * 0.15,
               }}
             />
           ))}

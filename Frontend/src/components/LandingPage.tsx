@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Mic, Upload, Play, Loader2, ChevronDown, Info, MapPin, Sparkles,
   Activity, Brain, Globe2, ShieldCheck, Zap, Ear, ArrowRight,
-  Volume2, CheckCircle2, AlertCircle, RefreshCw,
+  AlertCircle, RefreshCw,
 } from 'lucide-react';
 import Hero3D from '@/components/Hero3D';
 
@@ -193,6 +193,8 @@ export default function LandingPage() {
     isLiveModel: boolean;
   } | null>(null);
   const [asrData, setAsrData] = useState<ASRResult | null>(null);
+  const [isAsrLoading, setIsAsrLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -226,6 +228,12 @@ export default function LandingPage() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Guard: 15MB file size limit
+      if (file.size > 15 * 1024 * 1024) {
+        setErrorMessage('File exceeds maximum size of 15 MB. Please upload a shorter audio sample.');
+        return;
+      }
+      setErrorMessage(null);
       setUploadedFile(file);
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
@@ -241,6 +249,7 @@ export default function LandingPage() {
     setStatus('analyzing');
     setResult(null);
     setAsrData(null);
+    setErrorMessage(null);
 
     // Case 1: Real audio file uploaded -> Call live /api/predict
     if (uploadedFile) {
@@ -289,9 +298,18 @@ export default function LandingPage() {
           fetchAsrAdaptation(predClass);
           setStatus('done');
           return;
+        } else {
+          const errData = await res.json().catch(() => null);
+          const msg = errData?.detail || `Inference error: HTTP ${res.status}`;
+          setErrorMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
+          setStatus('idle');
+          return;
         }
       } catch (err) {
-        console.warn('Backend /api/predict unreachable, falling back to client benchmark:', err);
+        console.warn('Backend /api/predict unreachable:', err);
+        setErrorMessage('Unable to reach backend API service. Please verify the backend is running.');
+        setStatus('idle');
+        return;
       }
     }
 
@@ -331,6 +349,7 @@ export default function LandingPage() {
   };
 
   const fetchAsrAdaptation = async (accentId: string) => {
+    setIsAsrLoading(true);
     try {
       const formData = new FormData();
       formData.append('detected_accent', accentId);
@@ -352,6 +371,8 @@ export default function LandingPage() {
       }
     } catch (e) {
       console.warn('Failed to fetch downstream ASR:', e);
+    } finally {
+      setIsAsrLoading(false);
     }
   };
 
@@ -362,6 +383,8 @@ export default function LandingPage() {
     setStatus('idle');
     setResult(null);
     setAsrData(null);
+    setIsAsrLoading(false);
+    setErrorMessage(null);
     setPickerOpen(false);
   };
 
@@ -550,6 +573,14 @@ export default function LandingPage() {
               )}
             </div>
 
+            {/* Error banner */}
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2">
+                <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-400" />
+                <div>{errorMessage}</div>
+              </div>
+            )}
+
             {/* Waveform visualizer */}
             <Waveform bars={waveBars} markers={status === 'done' ? (result?.markers || null) : null} />
 
@@ -641,7 +672,14 @@ export default function LandingPage() {
                 </div>
 
                 {/* Downstream ASR Card */}
-                {asrData && (
+                {isAsrLoading ? (
+                  <div className="pt-3 border-t border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-[#9CA3AF] font-mono py-2">
+                      <Loader2 size={13} className="animate-spin text-fuchsia-400" />
+                      <span>Adapting downstream Whisper ASR prompt...</span>
+                    </div>
+                  </div>
+                ) : asrData ? (
                   <div className="pt-3 border-t border-white/10">
                     <div className="flex items-center justify-between mb-2">
                       <div className="font-mono text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
@@ -664,7 +702,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                )}
+                ) : null}
               </>
             ) : null}
           </div>
