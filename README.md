@@ -17,30 +17,6 @@
 
 Indian English is characterized by systematic phonological transfer from diverse substrate languages across Indo-Aryan and Dravidian language families. Conventional accent detection models operate as uninterpretable black boxes and frequently suffer from **speaker identity leakage** (evaluating on unseen utterances from the same speakers).
 
-**AccentSense** resolves these challenges through four foundational pillars:
-1. **Defensible 4-Class Regional Taxonomy**: Replaced ambiguous 19-class classification with 4 regional phonological anchors:
-   - `Central_MP` *(Madhya Pradesh / Malwa / Bhopal)* — high local academic relevance at VIT Bhopal
-   - `Western_Gujarati` *(Gujarat)* — breathy murmured vowels & sibilant de-voicing
-   - `Northern_Hindi` *(Delhi / UP / North Belt)* — retroflex plosive bursts & vowel monophthongization
-   - `Southern_Tamil` *(Tamil Nadu)* — Dravidian cross-family control, intervocalic voicing & syllable timing
-2. **Mathematically Proven Speaker-Disjoint Splitting**: Evaluated using 5-fold `StratifiedGroupKFold` strictly grouped on `speaker_id` ($\text{Train} \cap \text{Test} = \emptyset$), verified in [`split_audit_report.json`](Backend/data/splits/split_audit_report.json).
-3. **Axiomatic Temporal Explainability**: Frame-level attribution via **Captum Integrated Gradients** ($50\text{ Hz} / 20\text{ ms}$) verified through **Area Under Deletion Curve (AUDC)** faithfulness tests ($\Delta\text{AUDC} = +0.0046$, 100% pass rate).
-4. **Downstream Whisper ASR Adaptation**: Injects dynamic prompt prefixes into OpenAI Whisper (`"The following is Indian English spoken with a [Regional_Accent] accent."`), achieving **+100.00% Relative Word Error Rate Reduction (WERR)** on regional phonological traps.
-
----
-
-## 🔬 Benchmark Summary Matrix
-
-| Milestone | Architecture / Method | Features | Primary Metric | Empirical Benchmark | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Phase 1** | Classical SVM (RBF) | 39-dim MFCCs + $F_0$ + Energy | Macro-F1 | **0.2146** | ✅ Verified |
-| **Phase 1** | Classical Random Forest | 39-dim MFCCs + $F_0$ + Energy | Macro-F1 | **0.3207** | ✅ Verified |
-| **Phase 2** | Speaker-Disjoint Data Pipeline | Svarah / AccentDB subsets | Speaker Overlap | **0.0% (Zero Leakage)** | ✅ Verified |
-| **Phase 3** | **WavLM Base+ with ASP Head** | 768-dim SSL + Attentive Stats | Trainable Params | **$\sim 495\text{k}$** | ✅ Verified |
-| **Phase 4** | **Captum Integrated Gradients** | 20ms Frame Attribution | Faithfulness ($\Delta\text{AUDC}$) | **+0.0046 (100% Pass)** | ✅ Verified |
-| **Phase 5** | **Whisper ASR Prompt Conditioning** | Prefix Prior Injection | Relative WERR | **+100.00% Error Drop** | ✅ Verified |
-| **Phase 6** | **FastAPI & React Interactive UI** | REST API + Vite TS Dashboard | API Latency | **$<500\text{ ms}$** | ✅ Verified |
-
 ---
 
 ## 📁 Repository Structure
