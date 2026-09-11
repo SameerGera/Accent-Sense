@@ -131,6 +131,35 @@ def build_vctk_manifest(
     return manifest
 
 
+def build_vctk_manifest_from_hf(hf_dataset) -> List[Dict]:
+    """
+    Builds manifest from Hugging Face CSTR-Edinburgh/vctk dataset.
+    Returns same format as build_vctk_manifest().
+    """
+    manifest = []
+    for row in hf_dataset:
+        speaker_id = row.get("speaker_id", "")
+        accent_tag = row.get("accent", "")
+        wav_path = row.get("path", row.get("audio", {}).get("path", ""))
+
+        cls = VCTK_ACCENT_MAP.get(accent_tag)
+        if cls is None:
+            for key, val in VCTK_ACCENT_MAP.items():
+                if key.lower() in str(accent_tag).lower():
+                    cls = val
+                    break
+        if cls is None:
+            continue
+
+        manifest.append({
+            "path": wav_path,
+            "label": cls,
+            "speaker": speaker_id,
+            "class_idx": CLASS_TO_IDX[cls],
+        })
+    return manifest
+
+
 def build_cv_manifest(
     cv_clips_dir: str,
     tsv_path: str,
