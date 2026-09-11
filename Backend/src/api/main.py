@@ -1,7 +1,7 @@
-"""
+﻿"""
 AccentSense FastAPI Backend Service
-Provides endpoints for audio upload, L1 influence prediction,
-explainability saliency, and downstream ASR comparison.
+Provides endpoints for audio upload, UK regional accent classification,
+explainability saliency, and downstream ASR adaptation comparison.
 """
 
 import io
@@ -25,7 +25,7 @@ from src.explainability.saliency import (
     compute_temporal_saliency,
     map_explanations_to_phonetics,
 )
-from src.models.wavlm_classifier import WavLMForL1Influence
+from src.models.wavlm_classifier import WavLMAccentClassifier
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -42,14 +42,14 @@ limiter = Limiter(key_func=get_remote_address)
 # ---------------------------------------------------------------------------
 app = FastAPI(
     title="AccentSense API",
-    description="Explainable Native Language Influence Detection and ASR Adaptation Service",
-    version="0.2.0",
+    description="Explainable UK Regional Accent Detection and ASR Adaptation Service",
+    version="0.3.0",
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ---------------------------------------------------------------------------
-# CORS — configurable via CORS_ORIGINS env var (comma-separated)
+# CORS - configurable via CORS_ORIGINS env var (comma-separated)
 # ---------------------------------------------------------------------------
 _default_origins = "http://localhost:5173,http://localhost:3000"
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", _default_origins).split(",")
@@ -63,14 +63,26 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Constants
+# Constants - 7 UK Regional Accent Classes
 # ---------------------------------------------------------------------------
-CLASSES = ["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil"]
+CLASSES = [
+    "RP",
+    "Scottish",
+    "Welsh",
+    "Northern",
+    "West_Midlands",
+    "Cockney",
+    "Irish",
+]
+
 FAMILY_MAP = {
-    "Northern_Hindi": "Indo-Aryan (Delhi / UP)",
-    "Central_MP": "Indo-Aryan (Madhya Pradesh / Malwa / Bhopal)",
-    "Western_Gujarati": "Indo-Aryan (Gujarat)",
-    "Southern_Tamil": "Dravidian (Tamil Nadu)",
+    "RP": "Standard Southern British (Received Pronunciation)",
+    "Scottish": "Scottish English / Scots substrate (Scotland)",
+    "Welsh": "Welsh English / Cymraeg substrate (Wales)",
+    "Northern": "Northern English dialects (Yorkshire, Geordie, Manchester)",
+    "West_Midlands": "West Midlands English / Brummie (Birmingham, Wolverhampton)",
+    "Cockney": "London Cockney / Estuary English (East London)",
+    "Irish": "Irish English / Hiberno-English (Dublin, Ireland)",
 }
 
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MB
@@ -115,11 +127,11 @@ class DownstreamASRResponse(BaseModel):
 # Model Loading
 # ---------------------------------------------------------------------------
 CHECKPOINT_PATH = os.path.join("checkpoints", "best_wavlm_accentsense.pt")
-wavlm_model: Optional[WavLMForL1Influence] = None
+wavlm_model: Optional[WavLMAccentClassifier] = None
 asr_adaptor = WhisperAccentAdaptor()
 
 
-def get_live_model() -> Optional[WavLMForL1Influence]:
+def get_live_model() -> Optional[WavLMAccentClassifier]:
     """Load trained checkpoint lazily on first call, cache for subsequent requests."""
     global wavlm_model
     if wavlm_model is not None:
@@ -127,7 +139,7 @@ def get_live_model() -> Optional[WavLMForL1Influence]:
     if os.path.exists(CHECKPOINT_PATH):
         try:
             logger.info("Loading trained checkpoint from: %s", CHECKPOINT_PATH)
-            model = WavLMForL1Influence(num_classes=len(CLASSES), freeze_encoder=True)
+            model = WavLMAccentClassifier(num_classes=len(CLASSES), freeze_encoder=True)
             state = torch.load(CHECKPOINT_PATH, map_location=device)
             model.load_state_dict(state, strict=False)
             model.eval()
@@ -154,7 +166,7 @@ def health_check():
         "device": device,
         "model_loaded": live_model is not None,
         "supported_classes": CLASSES,
-        "phase": "Review 1 - Prototype & Inference Service",
+        "phase": "Review 2 - UK Accent Classifier",
     }
 
 
@@ -163,10 +175,13 @@ def health_check():
 async def predict_speech(request: Request, file: UploadFile = File(...)):
     """
     Receives an audio file (5-30 sec speech) and returns the predicted
-    native-language influence profile with temporal saliency explanations.
+    UK regional accent with temporal saliency explanations.
     """
     if not file.filename.lower().endswith((".wav", ".mp3", ".ogg", ".flac", ".m4a")):
-        raise HTTPException(status_code=400, detail="Invalid audio file format. Please upload WAV/MP3/OGG/FLAC/M4A.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid audio file format. Please upload WAV/MP3/OGG/FLAC/M4A.",
+        )
 
     audio_bytes = await file.read()
 
@@ -174,7 +189,10 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
     if len(audio_bytes) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large ({len(audio_bytes) / 1024 / 1024:.1f} MB). Maximum is {MAX_UPLOAD_BYTES // 1024 // 1024} MB.",
+            detail=(
+                f"File too large ({len(audio_bytes) / 1024 / 1024:.1f} MB). "
+                f"Maximum is {MAX_UPLOAD_BYTES // 1024 // 1024} MB."
+            ),
         )
 
     # --- Decode audio ---
@@ -203,7 +221,10 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
     if duration_sec > MAX_AUDIO_DURATION_SEC:
         raise HTTPException(
             status_code=400,
-            detail=f"Audio too long ({duration_sec:.1f}s). Maximum duration is {MAX_AUDIO_DURATION_SEC:.0f}s.",
+            detail=(
+                f"Audio too long ({duration_sec:.1f}s). "
+                f"Maximum duration is {MAX_AUDIO_DURATION_SEC:.0f}s."
+            ),
         )
 
     # --- Live model inference ---
@@ -217,11 +238,14 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
                 method="gradient",  # fast for web latency (<500ms)
             )
             pred_idx = saliency_result["predicted_class_index"]
-            pred_lang = CLASSES[pred_idx]
+            pred_accent = CLASSES[pred_idx]
             pred_confidence = float(saliency_result["probabilities"][pred_idx])
-            all_scores = {CLASSES[i]: round(float(p), 4) for i, p in enumerate(saliency_result["probabilities"])}
+            all_scores = {
+                CLASSES[i]: round(float(p), 4)
+                for i, p in enumerate(saliency_result["probabilities"])
+            }
             annotated_regions = map_explanations_to_phonetics(
-                language_name=pred_lang,
+                language_name=pred_accent,
                 salient_regions=saliency_result["salient_regions"],
             )
             regions_pydantic = [
@@ -237,8 +261,8 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
             ]
             return PredictionResponse(
                 is_mock_prototype=False,
-                predicted_influence=pred_lang,
-                language_family=FAMILY_MAP.get(pred_lang, "Indian English"),
+                predicted_influence=pred_accent,
+                language_family=FAMILY_MAP.get(pred_accent, "British English"),
                 confidence=round(pred_confidence, 4),
                 all_scores=all_scores,
                 salient_regions=regions_pydantic,
@@ -257,44 +281,55 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
     saliency = np.clip(base_saliency + noise, 0.0, 1.0)
     saliency_list = [round(float(s), 3) for s in saliency]
 
-    pred_lang = "Central_MP"
+    pred_accent = "Northern"
     salient_regions = [
         SalientRegion(
-            start_time_sec=1.4,
-            end_time_sec=2.1,
-            duration_sec=0.7,
-            salience_score=0.91,
-            linguistic_phenomenon="Moraic Vowel Lengthening",
-            phonetic_explanation="Elongated vowel duration on phrase-final syllables characteristic of Malwa/Central Hindi English.",
+            start_time_sec=1.2,
+            end_time_sec=2.0,
+            duration_sec=0.8,
+            salience_score=0.93,
+            linguistic_phenomenon="FOOT-STRUT Merger",
+            phonetic_explanation=(
+                "FOOT and STRUT vowels merged to a single short back vowel "
+                "[U] - a defining Northern English feature absent in RP."
+            ),
         ),
         SalientRegion(
-            start_time_sec=3.2,
-            end_time_sec=3.8,
+            start_time_sec=3.1,
+            end_time_sec=3.7,
             duration_sec=0.6,
-            salience_score=0.85,
-            linguistic_phenomenon="Intonation Pitch Modulation",
-            phonetic_explanation="Rising-falling melodic pitch contour at clause ending (Central Indian intonation).",
+            salience_score=0.86,
+            linguistic_phenomenon="Short TRAP-BATH vowel",
+            phonetic_explanation=(
+                "BATH words (e.g. path, grass) pronounced with short front /a/ "
+                "rather than RP long /a:/."
+            ),
         ),
         SalientRegion(
-            start_time_sec=5.1,
-            end_time_sec=5.6,
+            start_time_sec=5.0,
+            end_time_sec=5.5,
             duration_sec=0.5,
-            salience_score=0.79,
-            linguistic_phenomenon="Softened Retroflex Flap",
-            phonetic_explanation="Intervocalic retroflex articulation with moderated burst aspiration [ɽ].",
+            salience_score=0.77,
+            linguistic_phenomenon="Glottal Stop Replacement",
+            phonetic_explanation=(
+                "Intervocalic /t/ replaced by glottal stop in words like butter, water."
+            ),
         ),
     ]
 
     return PredictionResponse(
         is_mock_prototype=True,
-        predicted_influence=pred_lang,
-        language_family=FAMILY_MAP.get(pred_lang, "Indo-Aryan (Central MP)"),
-        confidence=0.78,
+        predicted_influence=pred_accent,
+        language_family=FAMILY_MAP.get(pred_accent, "British English"),
+        confidence=0.81,
         all_scores={
-            "Central_MP": 0.78,
-            "Northern_Hindi": 0.12,
-            "Western_Gujarati": 0.06,
-            "Southern_Tamil": 0.04,
+            "Northern": 0.81,
+            "RP": 0.08,
+            "Scottish": 0.05,
+            "West_Midlands": 0.03,
+            "Welsh": 0.02,
+            "Cockney": 0.01,
+            "Irish": 0.00,
         },
         salient_regions=salient_regions,
         timestamps=timestamps,
@@ -306,11 +341,11 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
 @limiter.limit("10/minute")
 async def downstream_asr_demo(
     request: Request,
-    detected_accent: str = Form("Central_MP"),
+    detected_accent: str = Form("Northern"),
     reference_text: Optional[str] = Form(None),
 ):
     """
-    Demonstrates downstream speech recognition adaptation using the predicted accent profile.
+    Demonstrates downstream speech recognition adaptation using the predicted UK accent profile.
     """
     bench = asr_adaptor.benchmark_sample(
         regional_accent=detected_accent,
@@ -320,7 +355,7 @@ async def downstream_asr_demo(
         f"{c['original_sound']}: {c['unadapted_error']} -> {c['adapted_correction']}"
         for c in bench.get("phonetic_corrections_analyzed", [])
     ]
-    family_desc = FAMILY_MAP.get(detected_accent, "Indian English")
+    family_desc = FAMILY_MAP.get(detected_accent, "British English")
 
     return DownstreamASRResponse(
         baseline_transcript=bench["baseline_transcript"],

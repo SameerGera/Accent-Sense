@@ -1,5 +1,5 @@
-"""
-Training and Fine-Tuning Pipeline for WavLM Base+ on Svarah L1 Influence Detection.
+﻿"""
+Training and Fine-Tuning Pipeline for WavLM Base+ on UK Regional Accent Classification (VCTK + Common Voice).
 Ready for Local execution or Google Colab / Kaggle GPU execution.
 """
 
@@ -12,8 +12,8 @@ from transformers import get_cosine_schedule_with_warmup
 import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
-from src.data.svarah_dataset import SvarahSpeechDataset, build_speaker_disjoint_splits
-from src.models.wavlm_classifier import WavLMForL1Influence
+from src.data.vctk_dataset import UKAccentDataset, collate_pad, load_manifest, CLASSES
+from src.models.wavlm_classifier import WavLMAccentClassifier
 
 
 def collate_audio_batch(batch):
@@ -114,7 +114,7 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("=" * 65)
-    print(f"AccentSense Phase 3: WavLM Base+ Attentive Statistics Training")
+    print(f"AccentSense Phase 3: WavLM Base+ UK Accent Classification Training")
     print(f"Device: {device} | Model: {args.model_name}")
     print("=" * 65)
 
@@ -240,3 +240,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

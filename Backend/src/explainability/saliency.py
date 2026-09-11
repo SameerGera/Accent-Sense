@@ -1,4 +1,4 @@
-"""
+﻿"""
 Explainability Engine: Frame-level Saliency, Temporal Attribution, Phonetic Mapping,
 and Explanation Faithfulness (Area Under Deletion Curve - AUDC).
 """
@@ -14,88 +14,142 @@ try:
 except ImportError:
     CAPTUM_AVAILABLE = False
 
-# Scientifically documented phonological transfer patterns in Indian English
+# Documented phonological features for each of the 7 UK regional accents
 PHONOLOGICAL_TRANSFER_RULES = {
-    "Northern_Hindi": [
+    "RP": [
         {
-            "phenomenon": "Dental/Retroflex Substitution",
-            "description": "Alveolar stops /t, d/ realized as retroflex [ʈ, ɖ] with elevated acoustic burst energy.",
+            "phenomenon": "Trap-Bath Split",
+            "description": "BATH-class words (path, grass, dance) realised with long back vowel /a:/ — the canonical RP vs. Northern differentiator.",
         },
         {
-            "phenomenon": "Vowel Monophthongization",
-            "description": "Diphthongs /eɪ/ and /oʊ/ produced as pure long monophthongs [eː, oː].",
+            "phenomenon": "Non-Rhoticity",
+            "description": "Post-vocalic /r/ is absent in coda position; linking and intrusive /r/ used at vowel boundaries.",
         },
         {
-            "phenomenon": "Labiodental Approximant Merger",
-            "description": "Neutralization of distinction between labiodental fricative /v/ and labiovelar approximant /w/ to [ʋ].",
+            "phenomenon": "FOOT-STRUT distinction",
+            "description": "STRUT vowel /ʌ/ is phonemically distinct from FOOT /ʊ/, unlike in Northern English.",
         },
         {
-            "phenomenon": "Aspiration / Prothetic Epenthesis",
-            "description": "Prothesis of [ɪ] or [ə] before initial s-clusters (e.g., 'station' -> [ɪsteːʃən]).",
-        },
-    ],
-    "Central_MP": [
-        {
-            "phenomenon": "Moraic Vowel Lengthening",
-            "description": "Elongated vowel duration in phrase-final positions characteristic of Malwa/Central Hindi.",
-        },
-        {
-            "phenomenon": "Intonation Pitch Modulation",
-            "description": "Characteristic melodic rising-falling pitch contour on clause endings and transitions.",
-        },
-        {
-            "phenomenon": "Softened Retroflex Flap",
-            "description": "Intervocalic retroflex articulation transitioning to flap [ɽ] with lower burst energy.",
-        },
-        {
-            "phenomenon": "Syllabic De-accentuation",
-            "description": "Moderated intensity contrast between lexically stressed and unstressed syllables.",
+            "phenomenon": "Smoothing / Coalescence",
+            "description": "Sequences of /j/ + vowel coalesce (e.g. 'tune' -> /tʃuːn/) and adjacent vowels smooth across syllable boundaries.",
         },
     ],
-    "Western_Gujarati": [
+    "Scottish": [
         {
-            "phenomenon": "Breathy / Murmured Voice Phonation",
-            "description": "Acoustic transfer of Gujarati contrastive murmured vowels into English vowels (elevated H1-H2 spectral tilt).",
+            "phenomenon": "Rhoticity",
+            "description": "Post-vocalic /r/ is retained in all positions — the clearest acoustic cue for Scottish English.",
         },
         {
-            "phenomenon": "Sibilant /z/ De-voicing",
-            "description": "Realization of voiced alveolar fricative /z/ as affricate [dʒ] or voiceless [s].",
+            "phenomenon": "TRAP-BATH non-split",
+            "description": "No vowel distinction between TRAP and BATH word sets; both realised with short /a/.",
         },
         {
-            "phenomenon": "Retroflex Lateral Flap",
-            "description": "Transfer of retroflex lateral [ɭ] in liquid and lateral consonant positions.",
+            "phenomenon": "Scottish Vowel Length Rule (SVLR)",
+            "description": "Vowels are long only before /r/, /v/, /z/, voiced fricatives, or at phrase boundary — not based on lexical stress.",
         },
         {
-            "phenomenon": "Low-Back Vowel Retraction",
-            "description": "Distinctive open-vowel formant patterns reflecting Gujarati vowel inventory shifts.",
+            "phenomenon": "Monophthong GOAT/FACE",
+            "description": "GOAT word set uses pure monophthong [e:] or [o:] rather than RP diphthongs [goʊt], [feɪs].",
         },
     ],
-    "Southern_Tamil": [
+    "Welsh": [
         {
-            "phenomenon": "Intervocalic Voicing Alternation",
-            "description": "Intervocalic voicing of voiceless stops; lack of phonemic contrast in word-initial voiced stops.",
+            "phenomenon": "Syllable-Timed Rhythm",
+            "description": "Equal duration allocated to syllables with less vowel reduction — transferred from Welsh phonology.",
         },
         {
-            "phenomenon": "Epenthetic Terminal & Initial Vowels",
-            "description": "Addition of high front vowel [i] before initial [s, r, l] or terminal [u] on word codas.",
+            "phenomenon": "Rising-Falling Intonation",
+            "description": "Characteristic melodic rise then fall at clause ends, mirroring Welsh intonation contours.",
         },
         {
-            "phenomenon": "Retroflex Lateral / Nasal Realization",
-            "description": "High retroflexion in liquids [ɭ] and nasals [ɳ] transferred from Dravidian phonology.",
+            "phenomenon": "Vowel Lengthening in Penultimate Syllable",
+            "description": "Penultimate syllable vowel is distinctly lengthened — reflecting Welsh stress patterns.",
         },
         {
-            "phenomenon": "Strict Syllable-Timed Prosody",
-            "description": "Uniform syllable duration across utterances with reduced vowel reduction to schwa [ə].",
+            "phenomenon": "Clear /l/ in all positions",
+            "description": "Welsh English uses a clear (non-velarised) /l/ even in coda position, unlike most English varieties.",
+        },
+    ],
+    "Northern": [
+        {
+            "phenomenon": "FOOT-STRUT Merger",
+            "description": "FOOT and STRUT vowels merged to short back [ʊ] — the defining Northern English feature absent south of the Severn-Wash line.",
+        },
+        {
+            "phenomenon": "Short TRAP-BATH vowel",
+            "description": "BATH-class words use short front /a/, not RP long /a:/ — e.g. 'path' rhymes with 'math'.",
+        },
+        {
+            "phenomenon": "Glottal Stop Replacement",
+            "description": "Intervocalic and word-final /t/ replaced by glottal stop [?] — e.g. 'butter', 'water', 'bit'.",
+        },
+        {
+            "phenomenon": "GOAT monophthong",
+            "description": "GOAT vowel realised as monophthong [o:] rather than RP diphthong [goʊ].",
+        },
+    ],
+    "West_Midlands": [
+        {
+            "phenomenon": "FACE/GOAT Diphthong Fronting",
+            "description": "FACE and GOAT diphthongs have fronted starting points, creating the distinctive Brummie vowel quality.",
+        },
+        {
+            "phenomenon": "Brummie Intonation Pattern",
+            "description": "Rising pitch on declaratives that falls at the very end — the 'Brummie melody' that sounds questioning to outsiders.",
+        },
+        {
+            "phenomenon": "Yod Coalescence",
+            "description": "/tj/ and /dj/ clusters coalesce to /tʃ/ and /dʒ/ more consistently than RP — e.g. 'tune' > /tʃuːn/.",
+        },
+        {
+            "phenomenon": "STRUT Retraction",
+            "description": "STRUT vowel is backer and slightly rounded compared to RP, approaching [ɔ] in some speakers.",
+        },
+    ],
+    "Cockney": [
+        {
+            "phenomenon": "H-Dropping",
+            "description": "Word-initial /h/ is variably deleted — e.g. 'house' -> [aʊs], 'happy' -> [api].",
+        },
+        {
+            "phenomenon": "TH-Fronting",
+            "description": "/θ/ and /ð/ replaced by labiodental fricatives /f/ and /v/ — e.g. 'think' -> [fɪŋk], 'brother' -> [brʌvə].",
+        },
+        {
+            "phenomenon": "Glottal Stop and L-vocalisation",
+            "description": "Word-final /l/ vocalises to [ʊ] (e.g. 'milk' -> [mɪʊk]) and /t/ glottalises robustly.",
+        },
+        {
+            "phenomenon": "MOUTH Diphthong Shift",
+            "description": "MOUTH vowel fronted and raised, approximately [mɑːf] — one of Cockney's most salient features.",
+        },
+    ],
+    "Irish": [
+        {
+            "phenomenon": "Rhoticity",
+            "description": "Post-vocalic /r/ retained in all positions — Irish English is rhotic like Scottish English.",
+        },
+        {
+            "phenomenon": "Dental Stops",
+            "description": "/θ/ and /ð/ realised as dental stops [t̪] and [d̪] rather than fricatives — a substrate effect from Irish.",
+        },
+        {
+            "phenomenon": "TRAP Raising",
+            "description": "TRAP vowel raised towards [e] in some environments — e.g. 'man' sounds closer to 'men' to English ears.",
+        },
+        {
+            "phenomenon": "Distinctive GOAT/FACE quality",
+            "description": "GOAT and FACE vowels have different diphthong onset positions compared to RP, with a raised starting point.",
         },
     ],
     "General": [
         {
-            "phenomenon": "Syllable-Timed Rhythm",
-            "description": "Equal duration allocated to syllables rather than stress-timed foot intervals.",
+            "phenomenon": "Stress-Timed Rhythm",
+            "description": "Standard British English uses stress-timed rhythm with reduced unstressed syllables.",
         },
         {
-            "phenomenon": "Reduced Vowel Centralization",
-            "description": "Less reduction of unstressed English vowels to schwa [ə].",
+            "phenomenon": "Non-Rhoticity",
+            "description": "Post-vocalic /r/ is absent in standard British varieties.",
         },
     ],
 }
@@ -109,8 +163,8 @@ def _integrated_gradients_native(
     device: str = "cpu",
 ) -> np.ndarray:
     """
-    Native path-integral calculation of Integrated Gradients (Sundararajan et al., 2017)
-    when Captum is not available or for direct fallback.
+    Native path-integral Integrated Gradients (Sundararajan et al., 2017)
+    used when Captum is unavailable.
     """
     baseline = torch.zeros_like(input_values).to(device)
     accumulated_grads = torch.zeros_like(input_values).to(device)
@@ -144,29 +198,27 @@ def compute_temporal_saliency(
 ) -> Dict[str, Any]:
     """
     Computes frame-level gradient-based saliency over time.
-    
+
     Args:
-        model: WavLMForL1Influence instance
-        waveform: 1D Tensor [Time] (16kHz audio) or 2D [1, Time]
+        model: WavLMAccentClassifier instance
+        waveform: 1D Tensor [Time] or 2D [1, Time] at 16 kHz
         target_class_idx: Target class index to explain (defaults to argmax prediction)
         device: 'cpu' or 'cuda'
         method: 'integrated_gradients' or 'gradient'
-        n_steps: Number of interpolation steps for Integrated Gradients
-        hop_length: Frame hop in samples (320 samples = 20ms at 16kHz)
-        sample_rate: Audio sampling rate (16kHz)
+        n_steps: Interpolation steps for Integrated Gradients
+        hop_length: Frame hop in samples (320 = 20ms at 16kHz)
+        sample_rate: Audio sampling rate
     Returns:
-        Dictionary with timestamps, smoothed saliency curve, top salient regions, and phonetic mappings.
+        Dict with timestamps, smoothed saliency curve, top salient regions.
     """
     model.eval()
     model.to(device)
 
-    # Ensure shape is [1, Time]
     if waveform.dim() == 1:
         input_values = waveform.unsqueeze(0).to(device)
     else:
         input_values = waveform.to(device)
 
-    # Forward pass to determine predictions
     with torch.no_grad():
         initial_out = model(input_values, return_hidden=True)
         logits = initial_out["logits"]
@@ -178,7 +230,6 @@ def compute_temporal_saliency(
     if target_class_idx is None:
         target_class_idx = int(np.argmax(probs))
 
-    # Compute raw sample-level attribution
     if method == "integrated_gradients":
         if CAPTUM_AVAILABLE:
             def forward_func(x):
@@ -202,7 +253,6 @@ def compute_temporal_saliency(
                 device=device,
             )
     else:
-        # Standard input * gradient attribution
         input_tensor = input_values.clone().detach().requires_grad_(True)
         out = model(input_tensor)
         score = out["logits"][0, target_class_idx]
@@ -216,7 +266,6 @@ def compute_temporal_saliency(
 
     raw_saliency = np.abs(raw_attr)
 
-    # Downsample saliency to 50 Hz frames (matching WavLM 20ms stride = 320 samples at 16kHz)
     num_frames = len(raw_saliency) // hop_length
     if num_frames == 0:
         num_frames = 1
@@ -228,23 +277,19 @@ def compute_temporal_saliency(
         for i in range(num_frames):
             frame_saliency[i] = np.mean(raw_saliency[i * hop_length : (i + 1) * hop_length])
 
-    # If ASP attention is available and lengths match, fuse gradient energy with attention
     if attention_weights is not None and len(attention_weights) == num_frames:
         norm_asp = attention_weights / (np.max(attention_weights) + 1e-8)
         norm_grad = frame_saliency / (np.max(frame_saliency) + 1e-8)
         frame_saliency = 0.5 * norm_grad + 0.5 * norm_asp
 
-    # Normalize between 0 and 1
     max_val = np.max(frame_saliency)
     if max_val > 0:
         frame_saliency = frame_saliency / max_val
 
-    # Smooth saliency curve (sigma = 3 frames ~ 60ms)
     smoothed_saliency = gaussian_filter1d(frame_saliency, sigma=3.0)
     if np.max(smoothed_saliency) > 0:
         smoothed_saliency = smoothed_saliency / np.max(smoothed_saliency)
 
-    # Extract top contiguous salient regions (threshold = 75th percentile)
     threshold = float(np.percentile(smoothed_saliency, 75))
     salient_mask = smoothed_saliency >= threshold
 
@@ -260,7 +305,7 @@ def compute_temporal_saliency(
         elif not is_high and in_region:
             in_region = False
             duration = (idx - start_idx) * frame_duration_sec
-            if duration >= 0.10:  # Only regions >= 100ms
+            if duration >= 0.10:
                 peak_score = float(np.max(smoothed_saliency[start_idx:idx]))
                 mean_score = float(np.mean(smoothed_saliency[start_idx:idx]))
                 regions.append({
@@ -271,7 +316,6 @@ def compute_temporal_saliency(
                     "mean_salience": round(mean_score, 3),
                 })
 
-    # Close trailing region if audio ends during salient segment
     if in_region:
         idx = len(salient_mask)
         duration = (idx - start_idx) * frame_duration_sec
@@ -286,7 +330,6 @@ def compute_temporal_saliency(
                 "mean_salience": round(mean_score, 3),
             })
 
-    # Sort regions by peak salience
     regions = sorted(regions, key=lambda r: r["salience_score"], reverse=True)[:4]
 
     return {
@@ -306,7 +349,8 @@ def map_explanations_to_phonetics(
     salient_regions: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
-    Correlates salient temporal regions with documented SLA phonological transfer phenomena.
+    Correlates salient temporal regions with documented phonological features
+    for the predicted UK accent.
     """
     rules = PHONOLOGICAL_TRANSFER_RULES.get(
         language_name,
@@ -336,13 +380,12 @@ def evaluate_deletion_faithfulness(
 ) -> Dict[str, Any]:
     """
     Evaluates Explanation Faithfulness via Area Under Deletion Curve (AUDC).
-    
+
     Progressively masks the top k% most salient frames vs. random frames,
     measuring how rapidly the target class probability degrades.
-    
+
     Faithfulness Criterion:
-        AUDC_salient < AUDC_random (i.e. Delta AUDC > 0)
-        Removing salient frames degrades confidence significantly faster than random frames.
+        AUDC_salient < AUDC_random  =>  Delta AUDC > 0
     """
     if deletion_fractions is None:
         deletion_fractions = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
@@ -350,7 +393,6 @@ def evaluate_deletion_faithfulness(
     model.eval()
     model.to(device)
 
-    # Ensure shape is [1, Time]
     if waveform.dim() == 1:
         input_values = waveform.unsqueeze(0).to(device)
     else:
@@ -369,7 +411,6 @@ def evaluate_deletion_faithfulness(
             "error": "Waveform too short for meaningful progressive deletion",
         }
 
-    # If saliency curve not provided, compute it via temporal saliency
     if frame_saliency is None:
         sal_result = compute_temporal_saliency(
             model=model,
@@ -382,17 +423,14 @@ def evaluate_deletion_faithfulness(
         if target_class_idx is None:
             target_class_idx = sal_result["predicted_class_index"]
 
-    # If target class is still None, compute argmax
     if target_class_idx is None:
         with torch.no_grad():
             logits = model(input_values)["logits"]
             target_class_idx = int(torch.argmax(logits, dim=-1).item())
 
-    # Get ranking of frames from most salient to least salient
     frame_saliency = frame_saliency[:num_frames]
     ranked_frame_indices = np.argsort(frame_saliency)[::-1]
 
-    # Baseline probability at 0% deletion
     with torch.no_grad():
         base_out = model(input_values)
         base_prob = float(base_out["probabilities"][0, target_class_idx].item())
@@ -407,7 +445,6 @@ def evaluate_deletion_faithfulness(
             random_probs.append(base_prob)
             continue
 
-        # 1. Salient Deletion: zero out top k salient frames
         masked_salient = input_values.clone()
         top_k_indices = ranked_frame_indices[:k]
         for f_idx in top_k_indices:
@@ -417,10 +454,8 @@ def evaluate_deletion_faithfulness(
 
         with torch.no_grad():
             out_sal = model(masked_salient)
-            sal_prob = float(out_sal["probabilities"][0, target_class_idx].item())
-            salient_probs.append(sal_prob)
+            salient_probs.append(float(out_sal["probabilities"][0, target_class_idx].item()))
 
-        # 2. Random Deletion: zero out k random frames across multiple seeds
         seed_probs = []
         for s in range(num_random_seeds):
             np.random.seed(42 + s * 17)
@@ -430,17 +465,12 @@ def evaluate_deletion_faithfulness(
                 start_s = f_idx * hop_length
                 end_s = min((f_idx + 1) * hop_length, total_samples)
                 masked_rand[0, start_s:end_s] = 0.0
-
             with torch.no_grad():
                 out_rand = model(masked_rand)
-                r_prob = float(out_rand["probabilities"][0, target_class_idx].item())
-                seed_probs.append(r_prob)
-
+                seed_probs.append(float(out_rand["probabilities"][0, target_class_idx].item()))
         random_probs.append(float(np.mean(seed_probs)))
 
-    # Compute Area Under Deletion Curve using the trapezoid rule
     del_arr = np.array(deletion_fractions)
-    # np.trapz is deprecated in numpy 2.0+ (use np.trapezoid if available, else np.trapz)
     if hasattr(np, "trapezoid"):
         audc_salient = float(np.trapezoid(salient_probs, del_arr))
         audc_random = float(np.trapezoid(random_probs, del_arr))
@@ -450,7 +480,6 @@ def evaluate_deletion_faithfulness(
 
     delta_audc = audc_random - audc_salient
     faithfulness_ratio = delta_audc / (audc_random + 1e-8)
-    is_faithful = bool(delta_audc > 0.0)
 
     return {
         "target_class_idx": target_class_idx,
@@ -461,5 +490,5 @@ def evaluate_deletion_faithfulness(
         "audc_random": round(audc_random, 4),
         "delta_audc": round(delta_audc, 4),
         "faithfulness_ratio": round(faithfulness_ratio, 4),
-        "is_faithful": is_faithful,
+        "is_faithful": bool(delta_audc > 0.0),
     }
