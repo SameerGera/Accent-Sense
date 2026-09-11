@@ -1,4 +1,4 @@
-﻿"""
+"""
 AccentSense FastAPI Backend Service
 Provides endpoints for audio upload, UK regional accent classification,
 explainability saliency, and downstream ASR adaptation comparison.
@@ -51,7 +51,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # ---------------------------------------------------------------------------
 # CORS - configurable via CORS_ORIGINS env var (comma-separated)
 # ---------------------------------------------------------------------------
-_default_origins = "http://localhost:5173,http://localhost:3000"
+_default_origins = "http://localhost:5173,http://localhost:5174,http://localhost:4173,http://localhost:3000"
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", _default_origins).split(",")
 
 app.add_middleware(

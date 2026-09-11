@@ -7,101 +7,102 @@ import {
 import Hero3D from '@/components/Hero3D';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000';
-const MARKER_COLORS = ['#E879F9', '#8B5CF6', '#22D3EE', '#34D399'];
+const MARKER_COLORS = ['#E879F9', '#8B5CF6', '#22D3EE', '#34D399', '#FBBF24', '#F472B6', '#60A5FA'];
 
-// The 4 Regional Phonological Anchors aligned with AccentSense ML taxonomy
+// UK Regional Accent demo samples
 export const SAMPLES = [
   {
-    id: 'Central_MP',
-    label: 'Central MP — Malwa / Bhopal',
-    speaker: 'Speaker 14, Bhopal / Indore',
-    prediction: 'Central MP Influence',
-    confidence: 84,
+    id: 'Northern',
+    label: 'Northern English — Yorkshire / Manchester',
+    speaker: 'Speaker 04, Leeds',
+    prediction: 'Northern Accent',
+    confidence: 87,
     alternatives: [
-      { lang: 'Northern Hindi', score: 10 },
-      { lang: 'Western Gujarati', score: 4 },
-      { lang: 'Southern Tamil', score: 2 },
+      { lang: 'West Midlands', score: 7 },
+      { lang: 'RP', score: 4 },
+      { lang: 'Scottish', score: 2 },
     ],
     markers: [
-      { start: 10, end: 28, label: 'Moraic Vowel Lengthening', note: 'Elongated vowel duration in phrase-final positions characteristic of Malwa English' },
-      { start: 42, end: 58, label: 'Clause Pitch Modulation', note: 'Characteristic rising-falling melodic pitch contour on clause transitions' },
-      { start: 68, end: 82, label: 'Softened Retroflex Flap', note: 'Intervocalic retroflex articulation transitioning to flap [ɽ] with lower burst energy' },
+      { start: 10, end: 28, label: 'FOOT-STRUT Merger', note: 'STRUT vowel /ʌ/ merged with FOOT vowel /ʊ/ — "cup" and "put" share the same vowel quality [ʊ]' },
+      { start: 38, end: 54, label: 'Short TRAP-BATH Split', note: 'BATH words retain short /a/ rather than the Southern long /ɑː/ — "bath" rhymes with "math"' },
+      { start: 64, end: 80, label: 'Glottal Stop /t/ Replacement', note: 'Intervocalic /t/ realised as glottal stop [ʔ] — "butter" becomes "bu[ʔ]er"' },
     ],
-    region: 'Madhya Pradesh (Malwa / Bhopal)',
-    regionNote: 'Central Indo-Aryan dialectal belt',
-    asrReference: 'the professor explained the complete project requirements in the class hall',
-    asrBaseline: 'the professor explained the complete project require ments in the class whole',
-    asrAdapted: 'the professor explained the complete project requirements in the class hall',
+    region: 'Northern England (Yorkshire / Greater Manchester)',
+    regionNote: 'Northern English dialect zone',
+    asrReference: 'put the butter and a cup of water on the table for us',
+    asrBaseline: 'put the bu er and a cop of wa er on the table for us',
+    asrAdapted: 'put the butter and a cup of water on the table for us',
   },
   {
-    id: 'Western_Gujarati',
-    label: 'Western Gujarat — Ahmedabad / Surat',
-    speaker: 'Speaker 08, Ahmedabad',
-    prediction: 'Western Gujarati Influence',
-    confidence: 82,
+    id: 'Scottish',
+    label: 'Scottish English — Edinburgh / Glasgow',
+    speaker: 'Speaker 12, Edinburgh',
+    prediction: 'Scottish Accent',
+    confidence: 91,
     alternatives: [
-      { lang: 'Northern Hindi', score: 11 },
-      { lang: 'Central MP', score: 5 },
-      { lang: 'Southern Tamil', score: 2 },
+      { lang: 'Irish', score: 5 },
+      { lang: 'Northern', score: 3 },
+      { lang: 'RP', score: 1 },
     ],
     markers: [
-      { start: 8, end: 24, label: 'Breathy Murmured Phonation', note: 'Acoustic transfer of Gujarati murmured vowel phonation into English vowels' },
-      { start: 36, end: 50, label: 'Sibilant /z/ De-voicing', note: 'Realization of voiced alveolar fricative /z/ as affricate [dʒ] or voiceless [s]' },
-      { start: 64, end: 78, label: 'Retroflex Lateral Flap', note: 'Transfer of retroflex lateral [ɭ] in liquid and lateral consonant positions' },
+      { start: 8, end: 26, label: 'Rhotic Post-Vocalic /r/', note: 'Coda /r/ is fully pronounced — "bird", "word", "nurse" all retain the /r/ consonant' },
+      { start: 36, end: 52, label: 'Scottish Vowel Length Rule', note: 'Vowels are long only before /r/, /v/, voiced fricatives — "side" is short, "sighed" is long' },
+      { start: 62, end: 78, label: 'Monophthong FACE/GOAT', note: 'Diphthongs /eɪ/ and /əʊ/ realised as pure long monophthongs [eː] and [oː]' },
     ],
-    region: 'Gujarat',
-    regionNote: 'Western Indo-Aryan dialectal belt',
-    asrReference: 'the business council presented the annual budget and financial results',
-    asrBaseline: 'the business consul presented the annual bad get and financial results',
-    asrAdapted: 'the business council presented the annual budget and financial results',
+    region: 'Scotland (Lothian / Central Belt)',
+    regionNote: 'Scottish English dialect zone',
+    asrReference: 'the bird perched on the word carved above the door of the church',
+    asrBaseline: 'the burred perched on the wurred carved above the door of the church',
+    asrAdapted: 'the bird perched on the word carved above the door of the church',
   },
   {
-    id: 'Northern_Hindi',
-    label: 'Northern Hindi — Delhi / UP / North Belt',
-    speaker: 'Speaker 03, Delhi NCR',
-    prediction: 'Northern Hindi Influence',
-    confidence: 86,
+    id: 'Cockney',
+    label: 'Cockney — East London',
+    speaker: 'Speaker 21, Bow, London',
+    prediction: 'Cockney Accent',
+    confidence: 85,
     alternatives: [
-      { lang: 'Central MP', score: 8 },
-      { lang: 'Western Gujarati', score: 4 },
-      { lang: 'Southern Tamil', score: 2 },
+      { lang: 'RP', score: 8 },
+      { lang: 'West Midlands', score: 5 },
+      { lang: 'Welsh', score: 2 },
     ],
     markers: [
-      { start: 12, end: 26, label: 'Retroflex Plosive Realization', note: 'Alveolar stops /t, d/ realized as retroflex [ʈ, ɖ] with elevated burst energy' },
-      { start: 38, end: 54, label: 'Vowel Monophthongization', note: 'Diphthongs /eɪ, oʊ/ produced as pure long monophthongs [eː, oː]' },
-      { start: 66, end: 82, label: 'Labiodental Approximant', note: 'Neutralization of distinction between /v/ and /w/ to [ʋ]' },
+      { start: 6, end: 22, label: 'TH-Fronting /f/ for /θ/', note: 'Voiceless /θ/ realised as labiodental fricative /f/ — "think" → "fink", "three" → "free"' },
+      { start: 34, end: 50, label: 'H-Dropping Word-Initial', note: 'Word-initial /h/ is dropped — "have" → "ave", "house" → "ouse"' },
+      { start: 62, end: 78, label: 'L-Vocalisation', note: 'Coda /l/ vocalised to [ʊ] — "milk" → "miʊk", "feel" → "feew"' },
     ],
-    region: 'Delhi / Uttar Pradesh',
-    regionNote: 'Northern Indo-Aryan dialectal belt',
-    asrReference: 'the customer ordered ten tickets for the morning flight to delhi',
-    asrBaseline: 'the customer ordered ten thickets for the morning light to daily',
-    asrAdapted: 'the customer ordered ten tickets for the morning flight to delhi',
+    region: 'East London (Tower Hamlets / Bow)',
+    regionNote: 'London vernacular dialect zone',
+    asrReference: 'i think three of them have already left the house together',
+    asrBaseline: 'i fink free of them ave already left the ouse togevver',
+    asrAdapted: 'i think three of them have already left the house together',
   },
   {
-    id: 'Southern_Tamil',
-    label: 'Southern Tamil — Chennai / Coimbatore',
-    speaker: 'Speaker 27, Chennai',
-    prediction: 'Southern Tamil Influence',
-    confidence: 89,
+    id: 'RP',
+    label: 'RP — Received Pronunciation',
+    speaker: 'Speaker 31, Surrey',
+    prediction: 'RP Accent',
+    confidence: 88,
     alternatives: [
-      { lang: 'Central MP', score: 5 },
-      { lang: 'Northern Hindi', score: 4 },
-      { lang: 'Western Gujarati', score: 2 },
+      { lang: 'Welsh', score: 6 },
+      { lang: 'Northern', score: 4 },
+      { lang: 'Scottish', score: 2 },
     ],
     markers: [
-      { start: 10, end: 24, label: 'Intervocalic Stop Voicing', note: 'Voiceless stops become voiced intervocalically; lack of word-initial voiced stops' },
-      { start: 36, end: 52, label: 'Coda Vowel Epenthesis', note: 'Paragogic addition of high front vowel [i] or terminal [u] on word codas' },
-      { start: 64, end: 80, label: 'Strict Syllable-Timed Prosody', note: 'Equal duration across syllables with reduced vowel reduction to schwa [ə]' },
+      { start: 10, end: 26, label: 'Non-Rhotic Coda', note: 'Post-vocalic /r/ is absent in all positions — "car", "bird", "here" have no audible /r/' },
+      { start: 36, end: 52, label: 'TRAP-BATH Split /ɑː/', note: 'BATH words use the long open back vowel /ɑː/ — "bath", "dance", "path" are lengthened' },
+      { start: 62, end: 78, label: 'FOOT-STRUT Split', note: 'STRUT /ʌ/ and FOOT /ʊ/ are distinct vowels — "cup" and "put" do not rhyme' },
     ],
-    region: 'Tamil Nadu',
-    regionNote: 'Southern Dravidian linguistic family (Cross-family control)',
-    asrReference: 'the system will automatically verify the identity of each applicant',
-    asrBaseline: 'the system will automatically veridy the idendity of each applicant you',
-    asrAdapted: 'the system will automatically verify the identity of each applicant',
+    region: 'Southern England (Surrey / Home Counties)',
+    regionNote: 'Standard Southern British dialect zone',
+    asrReference: 'the path through the grass led past the dance hall to the bath',
+    asrBaseline: 'the path through the grass led past the dance hall to the bath',
+    asrAdapted: 'the path through the grass led past the dance hall to the bath',
   },
 ] as const;
 
 export type Sample = typeof SAMPLES[number];
+
 
 export interface Marker {
   start: number;
@@ -445,14 +446,14 @@ export default function LandingPage() {
         <div className="relative max-w-6xl mx-auto px-5 pt-16 pb-10 grid lg:grid-cols-2 gap-8 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 text-xs font-mono text-fuchsia-400 mb-6">
-              <Sparkles size={12} /> Explainable Native Language Influence Detection
+              <Sparkles size={12} /> UK Regional Accent Classification
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
               Hear where a voice<br />
               <span className="gradient-text">comes from.</span>
             </h1>
             <p className="mt-5 text-lg text-[#9CA3AF] max-w-md leading-relaxed">
-              AccentSense detects native-language influence in Indian English speech — and explains each prediction with acoustic-phonetic transfer markers and downstream ASR tuning.
+              AccentSense classifies UK regional accents — RP, Scottish, Welsh, Northern, West Midlands, Cockney and Irish — and explains every prediction with temporal saliency and phonetic grounding.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a href="#demo" className="btn-primary px-6 py-3 text-sm flex items-center gap-2">
