@@ -57,12 +57,12 @@ class WavLMAccentClassifier(nn.Module):
     WavLM Base+ -> Attentive Statistics Pooling -> Classification Head.
 
     Supports frozen encoder with optional top-K layer fine-tuning.
-    Default: 7 UK classes (RP, Scottish, Welsh, Northern, West_Midlands, Cockney, Irish).
+    Default: 6 UK classes (RP, Scottish, Welsh, Northern, West_Midlands, Irish).
     """
     def __init__(
         self,
         pretrained_model_name: str = "microsoft/wavlm-base-plus",
-        num_classes: int = 7,
+        num_classes: int = 6,
         freeze_encoder: bool = True,
         unfreeze_top_k_layers: int = 2,
         dropout_p: float = 0.3,

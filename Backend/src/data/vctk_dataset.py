@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Tuple
 # ---------------------------------------------------------------------------
 # Class Definitions
 # ---------------------------------------------------------------------------
-CLASSES = ["RP", "Scottish", "Welsh", "Northern", "West_Midlands", "Cockney", "Irish"]
+CLASSES = ["RP", "Scottish", "Welsh", "Northern", "West_Midlands", "Irish"]
 CLASS_TO_IDX: Dict[str, int] = {c: i for i, c in enumerate(CLASSES)}
 
 # ---------------------------------------------------------------------------
@@ -57,10 +57,9 @@ VCTK_ACCENT_MAP: Dict[str, str] = {
     "West Midlands":    "West_Midlands",
     "Birmingham":       "West_Midlands",
     "Midlands":         "West_Midlands",
-    # Cockney / London
-    "London":           "Cockney",
-    "Cockney":          "Cockney",
-    "East London":      "Cockney",
+    # London / Southern
+    "London":           "RP",
+    "East London":      "RP",
     # Irish — primarily from Common Voice
     "Irish":            "Irish",
     "Ireland":          "Irish",

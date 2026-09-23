@@ -71,7 +71,6 @@ CLASSES = [
     "Welsh",
     "Northern",
     "West_Midlands",
-    "Cockney",
     "Irish",
 ]
 
@@ -329,10 +328,9 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
         all_scores={
             "Northern": 0.81,
             "RP": 0.08,
-            "Scottish": 0.05,
+            "Scottish": 0.06,
             "West_Midlands": 0.03,
             "Welsh": 0.02,
-            "Cockney": 0.01,
             "Irish": 0.00,
         },
         salient_regions=salient_regions,
