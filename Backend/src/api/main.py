@@ -177,7 +177,7 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
     Receives an audio file (5-30 sec speech) and returns the predicted
     UK regional accent with temporal saliency explanations.
     """
-    if not file.filename.lower().endswith((".wav", ".mp3", ".ogg", ".flac", ".m4a")):
+    if not file.filename.lower().endswith((".wav", ".mp3", ".ogg", ".flac", ".m4a", ".webm")):
         raise HTTPException(
             status_code=400,
             detail="Invalid audio file format. Please upload WAV/MP3/OGG/FLAC/M4A.",
@@ -214,6 +214,10 @@ async def predict_speech(request: Request, file: UploadFile = File(...)):
     if sr != 16000:
         resampler = torchaudio.transforms.Resample(sr, 16000)
         waveform = resampler(waveform)
+
+    MAX_FRAMES = 16000 * 10  # 10 seconds at 16kHz
+    if waveform.shape[-1] > MAX_FRAMES:
+        waveform = waveform[..., :MAX_FRAMES]
 
     duration_sec = waveform.shape[1] / 16000.0
 

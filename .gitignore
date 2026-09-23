@@ -75,3 +75,5 @@ Thumbs.db
 *.sln
 *.sw?
 
+.gstack/
+opencode.json

@@ -1,0 +1,597 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>AccentSense — Acoustic Linguistics Lab</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "secondary-fixed": "#eae1d8",
+            "error": "#ba1a1a",
+            "on-primary-fixed": "#380c00",
+            "on-error": "#ffffff",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed-variant": "#4b463f",
+            "primary-container": "#b85028",
+            "on-surface": "#1d1b19",
+            "inverse-surface": "#32302e",
+            "on-background": "#1d1b19",
+            "surface-container-low": "#f9f2ef",
+            "surface-container-high": "#ede7e3",
+            "on-primary": "#ffffff",
+            "on-secondary-fixed": "#1f1b16",
+            "inverse-on-surface": "#f6efec",
+            "on-tertiary": "#ffffff",
+            "outline": "#8a726a",
+            "tertiary-fixed": "#eae1d8",
+            "surface-bright": "#fff8f4",
+            "surface-container-highest": "#e7e1de",
+            "tertiary": "#5c5750",
+            "surface-container": "#f3ede9",
+            "secondary-fixed-dim": "#cec5bd",
+            "on-error-container": "#93000a",
+            "secondary": "#635d57",
+            "error-container": "#ffdad6",
+            "tertiary-container": "#756f67",
+            "on-tertiary-container": "#fdf3ea",
+            "inverse-primary": "#ffb59c",
+            "outline-variant": "#ddc0b7",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary-container": "#69635c",
+            "on-primary-container": "#fff2ee",
+            "surface-dim": "#dfd9d5",
+            "primary-fixed-dim": "#ffb59c",
+            "surface-variant": "#e7e1de",
+            "surface": "#fff8f4",
+            "primary": "#983912",
+            "on-primary-fixed-variant": "#812901",
+            "secondary-container": "#eae1d8",
+            "surface-tint": "#a13f18",
+            "on-tertiary-fixed": "#1f1b15",
+            "tertiary-fixed-dim": "#cec5bc",
+            "background": "#fff8f4",
+            "primary-fixed": "#ffdbcf",
+            "on-surface-variant": "#57423b",
+            "on-tertiary-fixed-variant": "#4b463f"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          spacing: {
+            "space-sm": "0.5rem",
+            "gutter-lg": "2rem",
+            "margin-lg": "3.5rem",
+            "margin": "2rem",
+            "space-md": "1rem",
+            "gutter-sm": "1rem",
+            "space-xl": "2.5rem",
+            "gutter": "1.5rem",
+            "margin-sm": "1rem",
+            "space-xs": "0.25rem",
+            "space-lg": "1.5rem"
+          },
+          fontFamily: {
+            "headline-sm": ["Plus Jakarta Sans"],
+            "display-lg-mobile": ["Newsreader"],
+            "label-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Newsreader"],
+            "label-code": ["Plus Jakarta Sans"],
+            "headline-lg": ["Newsreader"],
+            "display-lg": ["Newsreader"],
+            "headline-md": ["Newsreader"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"]
+          },
+          fontSize: {
+            "headline-sm": ["18px", { lineHeight: "26px", letterSpacing: "0em", fontWeight: "600" }],
+            "display-lg-mobile": ["34px", { lineHeight: "42px", letterSpacing: "-0.015em", fontWeight: "400" }],
+            "label-md": ["13px", { lineHeight: "18px", letterSpacing: "0.01em", fontWeight: "500" }],
+            "body-sm": ["13px", { lineHeight: "20px", letterSpacing: "0.005em", fontWeight: "400" }],
+            "body-md": ["15px", { lineHeight: "24px", letterSpacing: "0em", fontWeight: "400" }],
+            "headline-lg-mobile": ["26px", { lineHeight: "34px", letterSpacing: "-0.01em", fontWeight: "400" }],
+            "label-code": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }],
+            "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "400" }],
+            "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "400" }],
+            "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.005em", fontWeight: "500" }],
+            "label-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.06em", fontWeight: "600" }],
+            "body-lg": ["17px", { lineHeight: "28px", letterSpacing: "0em", fontWeight: "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      display: inline-block;
+      line-height: 1;
+    }
+    ::selection {
+      background-color: #ffd8cc;
+      color: #380c00;
+    }
+    .dark ::selection {
+      background-color: #812901;
+      color: #ffdbcf;
+    }
+  </style>
+</head>
+<body class="bg-surface dark:bg-inverse-surface text-on-surface dark:text-inverse-on-surface transition-colors duration-200 antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-primary-fixed">
+<!-- TopNavBar (Shared Component JSON Blueprint) -->
+<header class="bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline sticky top-0 z-50">
+<div class="flex justify-between items-center h-[60px] px-margin md:px-margin-lg max-w-[1280px] mx-auto w-full">
+<!-- Brand Logo Anchor -->
+<div class="flex items-baseline space-x-space-sm"><span class="font-headline-md text-headline-md text-on-surface dark:text-inverse-on-surface tracking-tight">AccentSense</span></div>
+<!-- Navigation Links -->
+<nav class="hidden md:flex items-center space-x-space-lg font-body-md text-body-md"><a class="text-primary dark:text-inverse-primary font-medium border-b border-primary dark:border-inverse-primary pb-1" href="#analysis">How it works</a><a class="text-secondary dark:text-secondary-fixed-dim hover:text-on-surface dark:hover:text-inverse-on-surface transition-colors" href="#resultsDossier">About</a></nav>
+<!-- Trailing Controls: Dark Mode Toggle & New Session Action -->
+<div class="flex items-center space-x-space-md">
+<button aria-label="Toggle visual theme" class="flex items-center space-x-space-xs px-space-sm py-1 border border-outline-variant dark:border-outline rounded text-secondary dark:text-secondary-fixed-dim hover:text-on-surface dark:hover:text-inverse-on-surface hover:bg-surface-container-low dark:hover:bg-inverse-surface transition-colors" id="themeToggleBtn">
+<span class="material-symbols-outlined text-[18px]" id="themeIcon">dark_mode</span>
+<span class="font-label-md text-label-md" id="themeLabel">Dark</span>
+</button>
+<button class="border border-outline-variant dark:border-outline text-on-surface dark:text-inverse-on-surface hover:bg-surface-container-low dark:hover:bg-surface-container-highest px-space-md py-1.5 rounded font-label-md text-label-md transition-colors" id="resetSessionBtn">Start over</button>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-grow max-w-[1280px] mx-auto w-full px-margin md:px-margin-lg py-space-xl space-y-space-xl">
+<!-- Section 1: Editorial Introduction -->
+<section class="max-w-3xl space-y-space-md"><div class="flex items-center space-x-space-sm"><span class="font-label-code text-label-code text-primary dark:text-inverse-primary uppercase tracking-wider">Speech Analysis</span></div><h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface dark:text-inverse-on-surface leading-tight tracking-tight">Find out how your native language shapes your English accent.</h1><p class="font-body-lg text-body-lg text-secondary dark:text-secondary-fixed-dim leading-relaxed">Upload a short voice recording. We analyze your rhythm, sounds, and speech patterns to estimate your language background.</p></section>
+<!-- Hairline Separator -->
+<div class="border-t border-outline-variant dark:border-outline w-full"></div>
+<!-- Section 2: Input / Acoustic Sample Stage -->
+<section class="space-y-space-lg" id="inputStage">
+<div class="flex flex-col md:flex-row md:items-baseline justify-between gap-space-sm"><div class="text-center max-w-xl mx-auto space-y-space-xs"><h2 class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface">Upload audio</h2><p class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim">Speak naturally in English for a few seconds · WAV, MP3, or M4A (up to 45s)</p></div></div>
+<!-- Bento Grid: Drag & Drop Zone + Verified Corpus Samples -->
+<div class="bg-surface-container-low dark:bg-inverse-surface border border-dashed border-outline dark:border-outline-variant rounded p-space-xl flex flex-col items-center justify-center text-center space-y-space-md transition-colors hover:border-primary max-w-2xl mx-auto w-full py-space-xl"><span class="material-symbols-outlined text-[36px] text-primary dark:text-inverse-primary">graphic_eq</span><div class="space-y-space-xs"><p class="font-body-md text-body-md text-on-surface dark:text-inverse-on-surface font-medium">Drop an audio file here, or <label class="text-primary dark:text-inverse-primary cursor-pointer hover:underline" for="audioFileInput">browse files</label></p><p class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim">Local analysis in WebAssembly. Zero audio payload leaves your browser.</p></div><input accept="audio/*" class="hidden" id="audioFileInput" type="file"><div class="flex items-center space-x-space-sm pt-space-xs"><span class="inline-block w-2 h-2 rounded-full bg-primary"></span><span class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim" id="fileStatusLabel">Ready for input</span></div></div>
+<!-- Integrated Audio Player & Waveform Visualizer -->
+<div class="bg-surface-container dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded p-space-lg space-y-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-space-md">
+<button class="w-10 h-10 rounded-full border border-outline-variant dark:border-outline flex items-center justify-center text-on-surface dark:text-inverse-on-surface hover:border-primary dark:hover:border-inverse-primary hover:text-primary transition-colors" id="playbackToggleBtn">
+<span class="material-symbols-outlined text-[20px]" id="playIcon">play_arrow</span>
+</button>
+<div>
+<div class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface" id="currentTrackTitle">Northern Swedish (Stockholm) — 14.2s</div>
+<div class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim">Acoustic Sample</div>
+</div>
+</div>
+<div class="font-label-code text-label-code text-on-surface dark:text-inverse-on-surface font-mono" id="timecodeDisplay">0:02 / 0:14</div>
+</div>
+<!-- Waveform Stage -->
+<div class="relative h-20 w-full bg-surface-container-high dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded overflow-hidden cursor-pointer" id="waveformContainer">
+<!-- Canvas for procedural soundwave -->
+<canvas class="w-full h-full block" id="waveformCanvas" width="1396" height="97"></canvas>
+<!-- Interactive Scrubber Playhead -->
+<div class="absolute top-0 bottom-0 left-[0%] w-[1.5px] bg-on-surface dark:bg-inverse-on-surface pointer-events-none transition-all duration-75" id="playheadCursor" style="left: 14.0845%;">
+<div class="w-[6px] h-[6px] bg-primary-container -ml-[2px] top-0"></div>
+</div>
+</div>
+<!-- Stage Footer Action Bar -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pt-space-sm gap-space-md">
+<div class="flex items-center space-x-space-md text-secondary dark:text-secondary-fixed-dim">
+<button class="flex items-center space-x-1 font-label-md text-label-md hover:text-primary transition-colors" id="loopAudioBtn">
+<span class="material-symbols-outlined text-[16px]">repeat</span>
+<span class="">Continuous Loop</span>
+</button>
+<span class="">•</span>
+<button class="flex items-center space-x-1 font-label-md text-label-md hover:text-primary transition-colors" id="zoomWaveformBtn">
+<span class="material-symbols-outlined text-[16px]">zoom_in</span>
+<span class="">100ms Window</span>
+</button>
+</div>
+<!-- Primary Execution Button -->
+<button class="bg-primary-container hover:bg-primary text-on-primary px-space-lg py-2 rounded font-label-md text-label-md transition-colors flex items-center justify-center space-x-space-xs font-medium" id="runAnalysisBtn"><span class="">Analyze speech</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+</div>
+</div>
+</section>
+<!-- Section 3: Restrained Analysis Progress State (Hidden by default, triggered on analyze) -->
+<section class="hidden py-space-xl border-y border-outline-variant dark:border-outline" id="analyzingState">
+<div class="max-w-xl mx-auto text-center space-y-space-md">
+<div class="flex justify-center">
+<span class="material-symbols-outlined text-[32px] text-primary dark:text-inverse-primary animate-pulse">model_training</span>
+</div>
+<div class="space-y-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface">Analyzing acoustic features</h3>
+<p class="font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim" id="analysisSubtext">
+            Evaluating formant trajectories (F1/F2 ratio) and syllable duration distribution...
+          </p>
+</div>
+<!-- Subtle hairline progress line -->
+<div class="w-full bg-surface-container-high dark:bg-surface-container-highest h-[2px] overflow-hidden rounded">
+<div class="bg-primary h-full w-0 transition-all duration-300 ease-out" id="analysisProgressBar"></div>
+</div>
+</div>
+</section>
+<!-- Section 4: Editorial Results Dossier (Becomes visible or pre-loaded) -->
+<section class="space-y-space-xl pt-space-md" id="resultsDossier">
+<!-- Primary Editorial Inference Headline -->
+<div class="border-b border-outline-variant dark:border-outline pb-space-lg"><div class="font-label-sm text-label-sm text-secondary dark:text-secondary-fixed-dim tracking-wider uppercase mb-space-xs">Likely native language</div><div class="flex flex-col md:flex-row md:items-baseline justify-between gap-space-sm"><div class="space-y-space-xs"><h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface dark:text-inverse-on-surface font-normal" id="resultL1Title">Swedish</h2><p class="font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim">Other possibilities: <span class="text-on-surface dark:text-inverse-on-surface font-medium" id="resultSecondaryL1">Norwegian (8%), Danish (3%)</span></p></div><div class="text-left md:text-right"><div class="font-display-lg text-headline-lg text-primary dark:text-inverse-primary font-light" id="resultConfidence">87%</div><div class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim">Confidence</div></div></div></div>
+<!-- Phonetic Breakdown Bento / Academic Row Layout -->
+<div class="space-y-space-md">
+<div class="flex items-center justify-between"><h3 class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface">Why this result?</h3></div>
+<div class="divide-y divide-outline-variant dark:divide-outline border-y border-outline-variant dark:border-outline"><div class="py-space-md grid grid-cols-1 md:grid-cols-12 gap-space-sm md:gap-space-md items-start hover:bg-surface-container-low dark:hover:bg-inverse-surface transition-colors"><div class="md:col-span-4 flex items-baseline space-x-space-xs"><span class="font-label-code text-label-code text-primary dark:text-inverse-primary">01</span><span class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface" id="featTitle1">Pitch &amp; Melody</span></div><div class="md:col-span-8 font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim" id="featDesc1">Noticeable pitch changes on stressed words, typical of Scandinavian speech melodies.</div></div><div class="py-space-md grid grid-cols-1 md:grid-cols-12 gap-space-sm md:gap-space-md items-start hover:bg-surface-container-low dark:hover:bg-inverse-surface transition-colors"><div class="md:col-span-4 flex items-baseline space-x-space-xs"><span class="font-label-code text-label-code text-primary dark:text-inverse-primary">02</span><span class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface" id="featTitle2">Consonant Sounds</span></div><div class="md:col-span-8 font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim" id="featDesc2">Softer pronunciation of t, p, and k sounds with distinct tongue placement.</div></div><div class="py-space-md grid grid-cols-1 md:grid-cols-12 gap-space-sm md:gap-space-md items-start hover:bg-surface-container-low dark:hover:bg-inverse-surface transition-colors"><div class="md:col-span-4 flex items-baseline space-x-space-xs"><span class="font-label-code text-label-code text-primary dark:text-inverse-primary">03</span><span class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface" id="featTitle3">Vowel Length</span></div><div class="md:col-span-8 font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim" id="featDesc3">Vowels are held noticeably longer before certain consonants.</div></div></div>
+</div>
+<!-- Interactive Speech Regions & Timeline -->
+<div class="bg-surface-container-low dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded p-space-lg space-y-space-md"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs"><div><h4 class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface">Audio Breakdown</h4><p class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim">Click a section of the recording to see what stood out.</p></div><div class="flex items-center space-x-2 font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim"><span class="inline-block w-2.5 h-2.5 bg-primary rounded-sm"></span><span class="">Selected part</span></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm"><button class="region-card p-space-md border border-primary dark:border-inverse-primary bg-surface-bright dark:bg-inverse-surface rounded text-left transition-all" data-end="5" data-start="2"><div class="flex justify-between items-center mb-space-xs"><span class="font-label-code text-label-code text-primary dark:text-inverse-primary font-bold">PART 1</span><span class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim">0:02 — 0:05</span></div><div class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface">Speech Rhythm</div><div class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim mt-1">Even timing between syllables, common in Scandinavian languages.</div></button><button class="region-card p-space-md border border-outline-variant dark:border-outline bg-surface-container dark:bg-inverse-surface rounded text-left hover:border-primary transition-all" data-end="10" data-start="7"><div class="flex justify-between items-center mb-space-xs"><span class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim font-bold">PART 2</span><span class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim">0:07 — 0:10</span></div><div class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface">Vowel Sounds</div><div class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim mt-1">Slightly higher pitch on short vowel sounds.</div></button><button class="region-card p-space-md border border-outline-variant dark:border-outline bg-surface-container dark:bg-inverse-surface rounded text-left hover:border-primary transition-all" data-end="14" data-start="11"><div class="flex justify-between items-center mb-space-xs"><span class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim font-bold">PART 3</span><span class="font-label-code text-label-code text-secondary dark:text-secondary-fixed-dim">0:11 — 0:14</span></div><div class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface">Sentence Ending</div><div class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim mt-1">A gentle downward pitch at the end of the sentence.</div></button></div><div class="p-space-md bg-surface-container-high dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded flex items-start space-x-space-sm"><span class="material-symbols-outlined text-primary dark:text-inverse-primary text-[20px] mt-0.5">info</span><div class="space-y-1"><div class="font-body-md text-body-md font-medium text-on-surface dark:text-inverse-on-surface" id="regionInspectTitle">Speech Rhythm (0:02 — 0:05)</div><p class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim" id="regionInspectDesc">Syllables are spaced with regular, steady intervals, characteristic of Germanic rhythm transferred into English.</p></div></div></div>
+<!-- Typological Context & Laboratory Notes -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg pt-space-sm border-t border-outline-variant dark:border-outline"><div class="space-y-space-xs"><h5 class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface">Background</h5><p class="font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim leading-relaxed">People who grow up speaking Scandinavian languages often carry a melodic pitch rhythm into English, especially on longer words.</p></div><div class="space-y-space-xs"><h5 class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface">How this works</h5><p class="font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim leading-relaxed">Accent patterns are compared against natural spoken English samples. Your audio is analyzed directly in your browser and never saved.</p></div></div>
+<!-- Action & Export Controls -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-space-md pt-space-md border-t border-outline-variant dark:border-outline">
+<button class="border border-outline-variant dark:border-outline text-on-surface dark:text-inverse-on-surface hover:bg-surface-container dark:hover:bg-inverse-surface px-space-lg py-2 rounded font-label-md text-label-md transition-colors flex items-center space-x-2" id="resetSessionBottomBtn">
+<span class="material-symbols-outlined text-[18px]">replay</span>
+<span class="">Try another recording</span>
+</button>
+<div class="flex items-center space-x-space-sm"><button class="border border-outline-variant dark:border-outline text-secondary dark:text-secondary-fixed-dim hover:text-on-surface dark:hover:text-inverse-on-surface hover:bg-surface-container dark:hover:bg-inverse-surface px-space-md py-2 rounded font-label-md text-label-md transition-colors" id="exportJsonBtn">Download data</button><button class="bg-surface-container-high dark:bg-inverse-surface border border-outline-variant dark:border-outline text-on-surface dark:text-inverse-on-surface hover:border-primary dark:hover:border-inverse-primary px-space-md py-2 rounded font-label-md text-label-md transition-colors" id="exportPdfBtn">Save PDF summary</button></div>
+</div>
+</section>
+</main>
+<!-- Footer (Shared Component JSON Blueprint) -->
+<footer class="bg-surface-container-low dark:bg-inverse-surface border-t border-outline-variant dark:border-outline mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center py-space-lg px-margin md:px-margin-lg max-w-[1280px] mx-auto w-full gap-space-md"><div class="text-center md:text-left space-y-1"><div class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface">AccentSense</div><p class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed-dim">© 2025 AccentSense. Made for learning and research.</p></div><div class="flex flex-wrap justify-center gap-x-space-md gap-y-space-xs font-body-sm text-body-sm"><a class="text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-inverse-primary underline transition-colors duration-150" href="#methodology">How it works</a><a class="text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-inverse-primary underline transition-colors duration-150" href="#privacy">Privacy</a><a class="text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-inverse-primary underline transition-colors duration-150" href="#ethics">Contact</a></div></div>
+</footer>
+<!-- Interactive Logic Script -->
+<script>
+    // State management
+    const state = {
+      theme: 'light',
+      currentSample: 'swedish',
+      isPlaying: false,
+      currentTime: 0,
+      duration: 14.20,
+      playInterval: null,
+      waveformBars: 120,
+      activeRegion: 'A',
+      samplesData: {
+        swedish: {
+          title: "Northern Swedish (Stockholm) — 14.2s",
+          duration: 14.20,
+          primary: "Swedish (Nordic Germanic)",
+          confidence: "87.4%",
+          secondary: "Norwegian (7.8%), Danish (2.6%), General North Germanic",
+          feat1: { title: "Tonal Word Accent & Pitch Peaks", desc: "High F0 pitch excursion on stressed syllabic peaks characteristic of Scandinavian pitch accent; early post-vocalic fundamental frequency contours preserve bilateral tonal distinction." },
+          feat2: { title: "Aspiration & Dentalization", desc: "Partial de-aspiration of initial voiceless stops (/p/, /t/, /k/) with reduced Voice Onset Time (VOT < 38ms) and retracted apico-alveolar articulation." },
+          feat3: { title: "Vowel Duration Contrast", desc: "Phonologically long vowels strictly preserved before voiced consonants with minimal central reduction of unstressed schwas (/ə/ → [e]/[a])." },
+          regions: [
+            { id: 'A', start: 2, end: 5, title: 'Syllable Timing Cadence', desc: 'Pairwise Variability Index (PVI) measures 41.2, closely corresponding with stress-timed Germanic languages that retain pitch accent remnants in loanword assimilation.' },
+            { id: 'B', start: 7, end: 10, title: 'Vowel Quality /æ/ vs /e/', desc: 'F1 lower by 110Hz; noticeable raising of open front vowel towards [ɛ].' },
+            { id: 'C', start: 11, end: 14, title: 'Terminal Intonation Drop', desc: 'Pre-boundary lengthening without characteristic British or American glide.' }
+          ]
+        },
+        spanish: {
+          title: "Castilian Spanish (Madrid) — 18.0s",
+          duration: 18.00,
+          primary: "Castilian Spanish (Iberian Romance)",
+          confidence: "91.2%",
+          secondary: "Catalan (4.1%), European Portuguese (2.8%), Italian (1.9%)",
+          feat1: { title: "Syllable-Timed Meter (Isosyllabicity)", desc: "Uniform syllable durations with strictly proportional vowel intervals. Syllables retain standard temporal weight regardless of lexical stress." },
+          feat2: { title: "Consonantal Spirantization (/b, d, g/)", desc: "Intervocalic lenition to voiced approximants [β, ð, ɣ], with distinctive coronal contact patterns on dental consonants." },
+          feat3: { title: "Five-Vowel System Compression", desc: "Absence of English lax vowels (/ɪ/, /ʊ/, /ʌ/); systematic phonetic realization toward prototypical five cardinal vowels [i, e, a, o, u]." },
+          regions: [
+            { id: 'A', start: 3, end: 6, title: 'Syllable Isochrony', desc: 'Normalized Pairwise Variability Index (nPVI) measures 29.8, indicating strong syllable-timing typical of Romance varieties.' },
+            { id: 'B', start: 8, end: 12, title: 'Dental Stop Frication', desc: 'Continuous spectrogram energy in stop transitions indicating partial spirantization.' },
+            { id: 'C', start: 14, end: 17, title: 'Final Epenthesis', desc: 'Prothetic vowel insertion [e] preceding s-clusters (/st/, /sp/).' }
+          ]
+        },
+        mandarin: {
+          title: "Mandarin Chinese (Beijing) — 16.4s",
+          duration: 16.40,
+          primary: "Mandarin Chinese (Sinitic)",
+          confidence: "89.6%",
+          secondary: "Cantonese (5.2%), Wu (3.1%), Taiwanese Hokkien (2.1%)",
+          feat1: { title: "Tonal Contours in Monosyllables", desc: "Pitch glides mapping directly into English stressed syllables; noticeable falling 4th tone realization on monosyllabic content words." },
+          feat2: { title: "Coda Nasal Neutralization", desc: "Merging of alveolar /n/ and velar /ŋ/ codas with nasalized preceding vowels, consistent with standard northern L1 phonotactics." },
+          feat3: { title: "Absence of Obstruent Codas", desc: "Stop deletion or vocalic release ([ə] epenthesis) on syllable-final stops (/p/, /t/, /k/) absent in native phonotactic inventory." },
+          regions: [
+            { id: 'A', start: 2, end: 5, title: 'Lexical Pitch Excursion', desc: 'Steep fundamental frequency slope (ΔF0 > 95Hz) across lexical stress loci.' },
+            { id: 'B', start: 7, end: 11, title: 'Consonant Cluster Simplification', desc: 'Syllabification of consonant clusters through vowel epenthesis.' },
+            { id: 'C', start: 12, end: 15, title: 'Vowel Nasalization', desc: 'Formant bandwidth broadening around 1000Hz indicating velopharyngeal opening.' }
+          ]
+        }
+      }
+    };
+
+    // DOM Elements
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+    const playbackToggleBtn = document.getElementById('playbackToggleBtn');
+    const playIcon = document.getElementById('playIcon');
+    const playheadCursor = document.getElementById('playheadCursor');
+    const timecodeDisplay = document.getElementById('timecodeDisplay');
+    const waveformCanvas = document.getElementById('waveformCanvas');
+    const waveformContainer = document.getElementById('waveformContainer');
+    const currentTrackTitle = document.getElementById('currentTrackTitle');
+    const sampleButtons = document.querySelectorAll('.sample-select-btn');
+    const runAnalysisBtn = document.getElementById('runAnalysisBtn');
+    const analyzingState = document.getElementById('analyzingState');
+    const analysisProgressBar = document.getElementById('analysisProgressBar');
+    const resultsDossier = document.getElementById('resultsDossier');
+    const audioFileInput = document.getElementById('audioFileInput');
+    const fileStatusLabel = document.getElementById('fileStatusLabel');
+    const resetSessionBtn = document.getElementById('resetSessionBtn');
+    const resetSessionBottomBtn = document.getElementById('resetSessionBottomBtn');
+    const regionCards = document.querySelectorAll('.region-card');
+    const regionInspectTitle = document.getElementById('regionInspectTitle');
+    const regionInspectDesc = document.getElementById('regionInspectDesc');
+
+    // Result text elements
+    const resultL1Title = document.getElementById('resultL1Title');
+    const resultConfidence = document.getElementById('resultConfidence');
+    const resultSecondaryL1 = document.getElementById('resultSecondaryL1');
+    const featTitle1 = document.getElementById('featTitle1');
+    const featDesc1 = document.getElementById('featDesc1');
+    const featTitle2 = document.getElementById('featTitle2');
+    const featDesc2 = document.getElementById('featDesc2');
+    const featTitle3 = document.getElementById('featTitle3');
+    const featDesc3 = document.getElementById('featDesc3');
+
+    // 1. Theme Switcher Logic
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      state.theme = isDark ? 'dark' : 'light';
+      themeIcon.textContent = isDark ? 'light_mode' : 'dark_mode';
+      themeLabel.textContent = isDark ? 'Light' : 'Dark';
+      drawWaveform();
+    });
+
+    // 2. Waveform Visualizer Rendering
+    let waveformValues = [];
+    function generateWaveformValues() {
+      waveformValues = [];
+      for (let i = 0; i < state.waveformBars; i++) {
+        // Procedural speech-like envelope with silence and bursts
+        const envelope = Math.sin((i / state.waveformBars) * Math.PI * 3.5) * 0.4 + 0.5;
+        const noise = Math.random() * 0.5 + 0.15;
+        const val = Math.min(1, Math.max(0.1, envelope * noise));
+        waveformValues.push(val);
+      }
+    }
+    generateWaveformValues();
+
+    function drawWaveform() {
+      const canvas = waveformCanvas;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const barWidth = Math.max(2, (w / state.waveformBars) - 1.5);
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      
+      const unplayedColor = isDarkMode ? '#57423b' : '#8a726a';
+      const playedColor = '#b85028';
+      const progressFraction = state.currentTime / state.duration;
+
+      for (let i = 0; i < state.waveformBars; i++) {
+        const barFraction = i / state.waveformBars;
+        const barHeight = waveformValues[i] * (h * 0.76);
+        const x = i * (w / state.waveformBars);
+        const y = (h - barHeight) / 2;
+
+        ctx.fillStyle = (barFraction <= progressFraction) ? playedColor : unplayedColor;
+        ctx.fillRect(x, y, barWidth, barHeight);
+      }
+    }
+
+    window.addEventListener('resize', drawWaveform);
+    setTimeout(drawWaveform, 50);
+
+    // 3. Audio Playback Simulation
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      const ms = Math.floor((seconds % 1) * 100);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+    }
+
+    function updatePlaybackUI() {
+      timecodeDisplay.textContent = `${formatTime(state.currentTime)} / ${formatTime(state.duration)}`;
+      const fraction = (state.currentTime / state.duration) * 100;
+      playheadCursor.style.left = `${Math.min(100, fraction)}%`;
+      drawWaveform();
+    }
+
+    function togglePlayback() {
+      state.isPlaying = !state.isPlaying;
+      if (state.isPlaying) {
+        playIcon.textContent = 'pause';
+        state.playInterval = setInterval(() => {
+          state.currentTime += 0.1;
+          if (state.currentTime >= state.duration) {
+            state.currentTime = 0;
+            state.isPlaying = false;
+            playIcon.textContent = 'play_arrow';
+            clearInterval(state.playInterval);
+          }
+          updatePlaybackUI();
+        }, 100);
+      } else {
+        playIcon.textContent = 'play_arrow';
+        clearInterval(state.playInterval);
+      }
+    }
+
+    playbackToggleBtn.addEventListener('click', togglePlayback);
+
+    // Click on waveform to seek
+    waveformContainer.addEventListener('click', (e) => {
+      const rect = waveformContainer.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+      state.currentTime = ratio * state.duration;
+      updatePlaybackUI();
+    });
+
+    // 4. Sample Switching Logic
+    function loadSample(key) {
+      state.currentSample = key;
+      const data = state.samplesData[key];
+      state.duration = data.duration;
+      state.currentTime = 0;
+      if (state.isPlaying) togglePlayback();
+
+      currentTrackTitle.textContent = data.title;
+      generateWaveformValues();
+      updatePlaybackUI();
+
+      sampleButtons.forEach(btn => {
+        if (btn.getAttribute('data-sample') === key) {
+          btn.classList.add('active-sample', 'border-primary', 'dark:border-inverse-primary');
+          btn.classList.remove('border-outline-variant', 'dark:border-outline');
+        } else {
+          btn.classList.remove('active-sample', 'border-primary', 'dark:border-inverse-primary');
+          btn.classList.add('border-outline-variant', 'dark:border-outline');
+        }
+      });
+
+      // Update Result Dossier with sample data
+      resultL1Title.textContent = data.primary;
+      resultConfidence.textContent = data.confidence;
+      resultSecondaryL1.textContent = data.secondary;
+      featTitle1.textContent = data.feat1.title;
+      featDesc1.textContent = data.feat1.desc;
+      featTitle2.textContent = data.feat2.title;
+      featDesc2.textContent = data.feat2.desc;
+      featTitle3.textContent = data.feat3.title;
+      featDesc3.textContent = data.feat3.desc;
+
+      // Update Region Cards
+      data.regions.forEach((reg, idx) => {
+        const card = regionCards[idx];
+        if (card) {
+          card.setAttribute('data-start', reg.start);
+          card.setAttribute('data-end', reg.end);
+          card.querySelector('.font-body-md').textContent = reg.title;
+          card.querySelector('.font-body-sm').textContent = reg.desc.substring(0, 70) + '...';
+        }
+      });
+      selectRegion(0);
+    }
+
+    sampleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sampleKey = btn.getAttribute('data-sample');
+        loadSample(sampleKey);
+      });
+    });
+
+    // 5. Analysis Trigger Animation
+    runAnalysisBtn.addEventListener('click', () => {
+      // Pause playback if running
+      if (state.isPlaying) togglePlayback();
+
+      // Show calm restrained progress state
+      analyzingState.classList.remove('hidden');
+      resultsDossier.classList.add('opacity-40');
+      analysisProgressBar.style.width = '0%';
+
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 25;
+        analysisProgressBar.style.width = `${progress}%`;
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          setTimeout(() => {
+            analyzingState.classList.add('hidden');
+            resultsDossier.classList.remove('opacity-40');
+            resultsDossier.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 350);
+        }
+      }, 250);
+    });
+
+    // 6. Region Timeline Inspector Interaction
+    function selectRegion(index) {
+      const sample = state.samplesData[state.currentSample];
+      const region = sample.regions[index];
+      if (!region) return;
+
+      regionCards.forEach((card, i) => {
+        if (i === index) {
+          card.classList.add('border-primary', 'dark:border-inverse-primary', 'bg-surface-bright');
+          card.classList.remove('border-outline-variant', 'dark:border-outline', 'bg-surface-container');
+        } else {
+          card.classList.remove('border-primary', 'dark:border-inverse-primary', 'bg-surface-bright');
+          card.classList.add('border-outline-variant', 'dark:border-outline', 'bg-surface-container');
+        }
+      });
+
+      regionInspectTitle.textContent = `Active Inspector: ${region.title} (0:0${region.start} — 0:${String(region.end).padStart(2, '0')})`;
+      regionInspectDesc.textContent = region.desc;
+
+      // Move scrubber to region start
+      state.currentTime = region.start;
+      updatePlaybackUI();
+    }
+
+    regionCards.forEach((card, index) => {
+      card.addEventListener('click', () => selectRegion(index));
+    });
+
+    // 7. Reset and File Upload Handling
+    function resetSession() {
+      if (state.isPlaying) togglePlayback();
+      loadSample('swedish');
+      fileStatusLabel.textContent = "Ready for input";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    resetSessionBtn.addEventListener('click', resetSession);
+    resetSessionBottomBtn.addEventListener('click', resetSession);
+
+    audioFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        fileStatusLabel.textContent = `Loaded: ${file.name.substring(0, 24)} (${(file.size / 1024).toFixed(0)} KB)`;
+        currentTrackTitle.textContent = `${file.name} (Custom recording)`;
+        state.duration = 12.5;
+        state.currentTime = 0;
+        generateWaveformValues();
+        updatePlaybackUI();
+      }
+    });
+
+    // Export stubs
+    document.getElementById('exportJsonBtn').addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.samplesData[state.currentSample], null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `AccentSense_Analysis_${state.currentSample}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    });
+
+    document.getElementById('exportPdfBtn').addEventListener('click', () => {
+      window.print();
+    });
+
+    // Initial load
+    loadSample('swedish');
+  </script>
+
+
+</body></html>

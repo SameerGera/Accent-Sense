@@ -1,4 +1,4 @@
-﻿"""
+"""
 VCTK + Mozilla Common Voice Dataset Loader for UK Regional Accent Classification.
 
 Supports two data sources:
@@ -306,17 +306,21 @@ class UKAccentDataset(torch.utils.data.Dataset):
         return waveform, entry["class_idx"]
 
 
-def collate_pad(batch: List[Tuple[torch.Tensor, int]]) -> Tuple[torch.Tensor, torch.Tensor]:
+def collate_pad(batch: List[Tuple[torch.Tensor, int]]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Pads variable-length waveforms in a batch to the maximum length.
+    Pads variable-length waveforms in a batch to the maximum length and returns attention mask.
     """
     waveforms, labels = zip(*batch)
-    max_len = max(w.shape[0] for w in waveforms)
+    lengths = [w.shape[0] for w in waveforms]
+    max_len = max(lengths)
     padded = torch.stack([
         torch.nn.functional.pad(w, (0, max_len - w.shape[0]))
         for w in waveforms
     ])
-    return padded, torch.tensor(labels, dtype=torch.long)
+    mask = torch.zeros(len(waveforms), max_len, dtype=torch.float32)
+    for i, length in enumerate(lengths):
+        mask[i, :length] = 1.0
+    return padded, torch.tensor(labels, dtype=torch.long), mask
 
 
 def save_manifest(manifest: List[Dict], path: str) -> None:

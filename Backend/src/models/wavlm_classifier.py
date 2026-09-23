@@ -1,4 +1,4 @@
-﻿"""
+"""
 WavLM Base+ with Attentive Statistics Pooling for UK Regional Accent Classification.
 """
 
@@ -116,7 +116,23 @@ class WavLMAccentClassifier(nn.Module):
             return_dict=True,
         )
         frame_features = outputs.last_hidden_state
-        pooled_features, attention_weights = self.asp(frame_features)
+
+        feat_mask = None
+        if attention_mask is not None:
+            if hasattr(self.backbone, "_get_feature_vector_attention_mask"):
+                feat_mask = self.backbone._get_feature_vector_attention_mask(
+                    frame_features.shape[1], attention_mask
+                )
+            elif attention_mask.shape[1] == frame_features.shape[1]:
+                feat_mask = attention_mask
+            else:
+                feat_mask = F.interpolate(
+                    attention_mask.unsqueeze(1).float(),
+                    size=frame_features.shape[1],
+                    mode="nearest",
+                ).squeeze(1)
+
+        pooled_features, attention_weights = self.asp(frame_features, attention_mask=feat_mask)
         logits = self.classifier(pooled_features)
 
         result: Dict[str, torch.Tensor] = {
