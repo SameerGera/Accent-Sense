@@ -133,14 +133,20 @@ def build_vctk_manifest(
 
 def build_vctk_manifest_from_hf(hf_dataset) -> List[Dict]:
     """
-    Builds manifest from Hugging Face CSTR-Edinburgh/vctk dataset.
+    Builds manifest from a Hugging Face VCTK dataset (streaming or loaded).
+    Supports both CSTR-Edinburgh/vctk and fufu12581/vctk column schemas.
     Returns same format as build_vctk_manifest().
     """
     manifest = []
     for row in hf_dataset:
         speaker_id = row.get("speaker_id", "")
-        accent_tag = row.get("accent", "")
-        wav_path = row.get("path", row.get("audio", {}).get("path", ""))
+        accent_tag = row.get("accent", row.get("region", ""))
+        # Audio path: try 'file', then 'audio.path', then 'audio' dict
+        wav_path = row.get("file", "")
+        if not wav_path:
+            audio = row.get("audio", {})
+            if isinstance(audio, dict):
+                wav_path = audio.get("path", "")
 
         cls = VCTK_ACCENT_MAP.get(accent_tag)
         if cls is None:

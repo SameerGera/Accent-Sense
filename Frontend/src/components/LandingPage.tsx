@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Mic, Upload, Play, Loader2, ChevronDown, Info, MapPin, Sparkles,
+  Upload, Play, Loader2, ChevronDown, Info, MapPin, Sparkles,
   Activity, Brain, Globe2, ShieldCheck, Zap, Ear, ArrowRight,
   AlertCircle, RefreshCw,
 } from 'lucide-react';
 import Hero3D from '@/components/Hero3D';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000';
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || '';
 const MARKER_COLORS = ['#E879F9', '#8B5CF6', '#22D3EE', '#34D399', '#FBBF24', '#F472B6', '#60A5FA'];
 
 // UK Regional Accent demo samples
@@ -809,8 +809,8 @@ function Waveform({ bars, markers }: { bars: number[]; markers: Marker[] | null 
           <rect
             key={i}
             className="marker-band"
-            x={(m.start / 90) * width} y={0}
-            width={Math.max(12, ((m.end - m.start) / 90) * width)} height={height}
+            x={(m.start / 100) * width} y={0}
+            width={Math.max(12, ((m.end - m.start) / 100) * width)} height={height}
             fill={MARKER_COLORS[i % MARKER_COLORS.length]} opacity={0.18}
           />
         ))}
