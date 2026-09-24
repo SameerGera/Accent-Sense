@@ -65,6 +65,7 @@ VCTK_ACCENT_MAP: Dict[str, str] = {
     "Ireland":          "Irish",
     "Dublin":           "Irish",
     "Northern Ireland": "Irish",
+    "NorthernIrish":    "Irish",
 }
 
 TARGET_SAMPLE_RATE = 16_000

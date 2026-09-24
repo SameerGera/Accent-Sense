@@ -38,7 +38,8 @@ class AttentiveStatisticsPooling(nn.Module):
         scores = self.attention(hidden_states)  # [Batch, Time, 1]
 
         if attention_mask is not None:
-            scores = scores.masked_fill(attention_mask.unsqueeze(-1) == 0, -1e9)
+            mask_float = attention_mask.float().unsqueeze(-1)
+            scores = scores * mask_float + (1.0 - mask_float) * (-1e9)
 
         alpha = F.softmax(scores, dim=1)  # [Batch, Time, 1]
 
@@ -70,6 +71,8 @@ class WavLMAccentClassifier(nn.Module):
     ):
         super().__init__()
         self.model_name = pretrained_model_name
+        self.freeze_encoder = freeze_encoder
+        self.unfreeze_top_k_layers = unfreeze_top_k_layers
         if config is not None:
             self.backbone = AutoModel.from_config(config)
         else:
@@ -109,28 +112,70 @@ class WavLMAccentClassifier(nn.Module):
             dict: logits, probabilities, attention_weights,
                   optionally frame_features and all_hidden_states.
         """
-        outputs = self.backbone(
-            input_values,
-            attention_mask=attention_mask,
-            output_hidden_states=True,
-            return_dict=True,
-        )
-        frame_features = outputs.last_hidden_state
+        is_dml = input_values.device.type == "privateuseone"
+        all_hidden_states = []
+
+        if self.freeze_encoder and hasattr(self.backbone, "encoder") and not return_hidden:
+            # Memory- & DirectML-optimized path: run frozen CNN + frozen bottom Transformer layers under torch.no_grad()
+            total_layers = len(self.backbone.encoder.layers)
+            k = max(0, min(self.unfreeze_top_k_layers, total_layers))
+            frozen_layers = self.backbone.encoder.layers[: total_layers - k]
+            trainable_layers = self.backbone.encoder.layers[total_layers - k :]
+
+            with torch.no_grad():
+                extract_features = self.backbone.feature_extractor(input_values)
+                extract_features = extract_features.transpose(1, 2)
+                hidden_states, _ = self.backbone.feature_projection(extract_features)
+                pos_conv = self.backbone.encoder.pos_conv_embed(hidden_states)
+                hidden_states = hidden_states + pos_conv
+                hidden_states = self.backbone.encoder.layer_norm(hidden_states)
+                hidden_states = self.backbone.encoder.dropout(hidden_states)
+
+                pos_bias = None
+                for layer in frozen_layers:
+                    layer_out = layer(hidden_states, position_bias=pos_bias)
+                    hidden_states = layer_out[0]
+                    pos_bias = layer_out[1]
+
+            hidden_states = hidden_states.detach()
+            if pos_bias is not None:
+                pos_bias = pos_bias.detach()
+
+            for layer in trainable_layers:
+                layer_out = layer(hidden_states, position_bias=pos_bias)
+                hidden_states = layer_out[0]
+                pos_bias = layer_out[1]
+
+            frame_features = hidden_states
+        else:
+            backbone_mask = None if is_dml else attention_mask
+            outputs = self.backbone(
+                input_values,
+                attention_mask=backbone_mask,
+                output_hidden_states=True,
+                return_dict=True,
+            )
+            frame_features = outputs.last_hidden_state
+            all_hidden_states = outputs.hidden_states
 
         feat_mask = None
         if attention_mask is not None:
+            mask_for_calc = attention_mask.cpu() if is_dml else attention_mask
             if hasattr(self.backbone, "_get_feature_vector_attention_mask"):
                 feat_mask = self.backbone._get_feature_vector_attention_mask(
-                    frame_features.shape[1], attention_mask
-                )
+                    frame_features.shape[1], mask_for_calc
+                ).float().to(input_values.device)
             elif attention_mask.shape[1] == frame_features.shape[1]:
-                feat_mask = attention_mask
+                feat_mask = attention_mask.float()
             else:
                 feat_mask = F.interpolate(
-                    attention_mask.unsqueeze(1).float(),
+                    mask_for_calc.unsqueeze(1).float(),
                     size=frame_features.shape[1],
                     mode="nearest",
-                ).squeeze(1)
+                ).squeeze(1).to(input_values.device)
+
+            if is_dml:
+                frame_features = frame_features * feat_mask.unsqueeze(-1)
 
         pooled_features, attention_weights = self.asp(frame_features, attention_mask=feat_mask)
         logits = self.classifier(pooled_features)
@@ -142,7 +187,7 @@ class WavLMAccentClassifier(nn.Module):
         }
         if return_hidden:
             result["frame_features"] = frame_features
-            result["all_hidden_states"] = outputs.hidden_states
+            result["all_hidden_states"] = all_hidden_states
 
         return result
 
