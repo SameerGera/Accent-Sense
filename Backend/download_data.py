@@ -302,6 +302,79 @@ def add_irish_supplement(manifest):
     return manifest
 
 
+def add_common_voice_supplement(manifest):
+    """Add Mozilla Common Voice samples for underrepresented accents (Irish, Northern)."""
+    irish_count = sum(1 for m in manifest if m["label"] == "Irish")
+    northern_count = sum(1 for m in manifest if m["label"] == "Northern")
+
+    if irish_count >= 200 and northern_count >= 200:
+        return manifest
+
+    print(f"\nAdding Mozilla Common Voice supplement...")
+    print(f"  Current Irish: {irish_count}, Northern: {northern_count}")
+
+    try:
+        from datasets import load_dataset
+
+        # Common Voice accent tags that map to our classes
+        IRISH_TAGS = {"Ireland", "Irish", "Dublin", "Northern Ireland"}
+        NORTHERN_TAGS = {"England", "United Kingdom"}  # Broad UK filter, will subsample
+
+        cv_extras = []
+        for cv_version in ["mozilla-foundation/common_voice_17_0", "mozilla-foundation/common_voice_13_0"]:
+            try:
+                print(f"  Trying {cv_version}...")
+                cv = load_dataset(cv_version, "en", split="train", streaming=True)
+                for s in cv.take(50000):
+                    accent = s.get("accent", "")
+                    if accent in IRISH_TAGS:
+                        cv_extras.append({
+                            "audio": s["audio"],
+                            "speaker": s.get("client_id", "cv_unknown"),
+                            "label": "Irish",
+                            "class_idx": CLASSES.index("Irish"),
+                        })
+                    elif accent in NORTHERN_TAGS and len([e for e in cv_extras if e["label"] == "Northern"]) < 200:
+                        cv_extras.append({
+                            "audio": s["audio"],
+                            "speaker": s.get("client_id", "cv_unknown"),
+                            "label": "Northern",
+                            "class_idx": CLASSES.index("Northern"),
+                        })
+
+                    irish_cv = len([e for e in cv_extras if e["label"] == "Irish"])
+                    northern_cv = len([e for e in cv_extras if e["label"] == "Northern"])
+                    if irish_cv >= 200 and northern_cv >= 200:
+                        break
+
+                if cv_extras:
+                    break
+            except Exception as ve:
+                print(f"  {cv_version} failed: {ve}")
+                continue
+
+        # Save Common Voice clips
+        os.makedirs(os.path.join(CURRENT_DIR, "data", "cv_extras"), exist_ok=True)
+        for i, item in enumerate(cv_extras):
+            p = os.path.join(CURRENT_DIR, "data", "cv_extras", f"cv_{item['label'].lower()}_{i:04d}.wav")
+            sf.write(p, np.array(item["audio"]["array"], dtype=np.float32), item["audio"]["sampling_rate"])
+            manifest.append({
+                "path": p,
+                "label": item["label"],
+                "speaker": str(item["speaker"]),
+                "class_idx": item["class_idx"],
+            })
+
+        irish_added = len([e for e in cv_extras if e["label"] == "Irish"])
+        northern_added = len([e for e in cv_extras if e["label"] == "Northern"])
+        print(f"  Added {irish_added} Irish + {northern_added} Northern Common Voice samples")
+
+    except Exception as e:
+        print(f"  Common Voice supplement failed: {e}")
+
+    return manifest
+
+
 def speaker_disjoint_splits(manifest, train_ratio=0.75, val_ratio=0.15, seed=42):
     """Split manifest into train/val/test with no speaker overlap."""
     random.seed(seed)
@@ -355,6 +428,9 @@ def main():
 
     # Step 3: Add Irish supplement
     manifest = add_irish_supplement(manifest)
+
+    # Step 4: Add Common Voice supplement
+    manifest = add_common_voice_supplement(manifest)
 
     # Step 4: Print summary
     print("\n" + "=" * 60)
