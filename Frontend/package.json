@@ -34,5 +34,8 @@
   "browserslist": [
     "> 0.2%",
     "not dead"
-  ]
+  ],
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
 }

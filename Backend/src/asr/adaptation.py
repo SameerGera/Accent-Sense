@@ -1,6 +1,6 @@
 ﻿"""
 Downstream ASR Adaptation Engine: Prompt-Conditioned Whisper Transcription & WERR Benchmarking.
-Tuned for 7 UK regional accent classes.
+Tuned for 6 UK regional accent classes: RP, Scottish, Welsh, Northern, West_Midlands, Irish.
 """
 
 import os
@@ -16,7 +16,6 @@ REGIONAL_PROMPTS = {
     "Welsh": "The following is Welsh English with syllable-timed rhythm, rising-falling intonation, and lengthened penultimate vowels.",
     "Northern": "The following is Northern English with the FOOT-STRUT merger, short BATH vowels, and glottal stop replacement of intervocalic t.",
     "West_Midlands": "The following is West Midlands English (Brummie) with fronted FACE and GOAT diphthongs and the characteristic Brummie intonation.",
-    "Cockney": "The following is London Cockney English with TH-fronting, H-dropping, L-vocalisation, and glottal stop replacement.",
     "Irish": "The following is Irish English (Hiberno-English) with rhotic r, dental stops for th-sounds, and distinctive GOAT and FACE vowels.",
     "General": "The following is British English speech.",
 }
@@ -78,18 +77,6 @@ PHONETIC_ERROR_PATTERNS = {
             "adapted_correction": "Rising-falling intonation correctly parsed as declarative.",
         },
     ],
-    "Cockney": [
-        {
-            "original_sound": "TH-Fronting /f/ for /th/",
-            "unadapted_error": "TH-fronted words transcribed literally (e.g. 'think' -> 'fink', 'three' -> 'free', 'brother' -> 'bruvver').",
-            "adapted_correction": "TH-fronted phoneme restored to standard TH orthography.",
-        },
-        {
-            "original_sound": "H-Dropping word-initial",
-            "unadapted_error": "H-dropped words mis-transcribed ('have' -> 'ave', 'house' -> 'ouse').",
-            "adapted_correction": "H-initial word correctly restored.",
-        },
-    ],
     "Irish": [
         {
             "original_sound": "Dental stop /t/ for /th/",
@@ -104,7 +91,7 @@ PHONETIC_ERROR_PATTERNS = {
     ],
 }
 
-# Benchmark corpus: 7 sentences chosen to trigger accent-specific phonological contrasts
+# Benchmark corpus: 6 sentences chosen to trigger accent-specific phonological contrasts
 BENCHMARK_CORPUS = {
     "RP": {
         "reference": "the path through the grass led past the dance hall to the bath",
@@ -130,11 +117,6 @@ BENCHMARK_CORPUS = {
         "reference": "make the cake later and take it to the gate before eight",
         "baseline_hypothesis": "mek the cek later and tek it to the get before et",
         "adapted_hypothesis": "make the cake later and take it to the gate before eight",
-    },
-    "Cockney": {
-        "reference": "i think three of them have already left the house together",
-        "baseline_hypothesis": "i fink free of them ave already left the ouse togevver",
-        "adapted_hypothesis": "i think three of them have already left the house together",
     },
     "Irish": {
         "reference": "this is the thirty third day since the weather turned colder",

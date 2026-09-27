@@ -1,11 +1,11 @@
-# AccentSense: Explainable Native Language Influence Detection in Indian English Speech
+# AccentSense: Explainable UK Regional Accent Detection in Speech
 
-AccentSense is an explainable speech-processing research framework designed to analyze phonological transfer and prosodic characteristics (native-language influence) in Indian English speech.
+AccentSense is an explainable speech-processing research framework designed to analyze phonological and prosodic patterns in UK regional accent speech.
 
 ---
 
 ## 📌 Review 1 Current Status
-- **Frontend Prototype**: Interactive dashboard (Audio recording/upload, attribution heatmap, L1 influence breakdown).
+- **Frontend Prototype**: Interactive dashboard (Audio recording/upload, attribution heatmap, regional accent breakdown).
 - **Backend Architecture**: FastAPI REST service with endpoints for inference, temporal saliency extraction, and downstream ASR comparison.
 - **ML Pipeline**: Modular training pipeline supporting Classical Baselines (MFCC + SVM/RF) and Deep Speech Representations (WavLM Base+ with Attentive Statistics Pooling).
 - **Academic Rigor**: Strictly enforced **Speaker-Disjoint Splitting** to eliminate speaker memorization and acoustic leakage.
@@ -17,17 +17,25 @@ AccentSense is an explainable speech-processing research framework designed to a
 Accent Sense/
 ├── README.md
 ├── requirements.txt
-├── train_baseline.py         # Phase 1: Acoustic MFCC + SVM / Random Forest baseline
-├── train_wavlm.py            # Phase 2 & 3: WavLM Base+ fine-tuning with ASP
+├── curate_data.py             # Phase 2: Dataset curation & speaker-disjoint splitting
+├── train_baseline.py          # Phase 1: Acoustic MFCC + SVM / Random Forest baseline
+├── train_wavlm.py             # Phase 3: WavLM Base+ fine-tuning with ASP
+├── explain_speech.py          # Phase 4: XAI attribution & AUDC verification
+├── downstream_asr.py          # Phase 5: Downstream Whisper adaptation
+├── run_api.py                 # FastAPI service launcher (port 8000)
+├── checkpoints/               # Trained model weights (.pt)
+├── data/splits/               # Speaker-disjoint CSV splits (train, val, test)
+├── notebooks/                 # Google Colab GPU training notebook
+├── reports/                   # Audit reports, XAI faithfulness, ASR benchmarks
 └── src/
     ├── api/
-    │   └── main.py           # FastAPI service (predict, explain, downstream-asr)
+    │   └── main.py            # FastAPI service (predict, explain, downstream-asr)
     ├── data/
-    │   └── svarah_dataset.py # Svarah dataset loader with speaker-disjoint splitting
+    │   └── dataset.py         # VCTK + Mozilla Common Voice loader with speaker-disjoint splitting
     ├── explainability/
-    │   └── saliency.py       # Frame-level gradient attribution & phonetic transfer mapping
+    │   └── saliency.py        # Frame-level gradient attribution & phonological mapping
     └── models/
-        ├── baseline_mfcc.py  # MFCC feature extraction + Scikit-Learn classifiers
+        ├── baseline_mfcc.py   # MFCC feature extraction + Scikit-Learn classifiers
         └── wavlm_classifier.py # WavLM Base+ with Attentive Statistics Pooling
 ```
 
@@ -49,9 +57,9 @@ python train_baseline.py
 
 ### 3. Launch FastAPI Backend
 ```powershell
-uvicorn src.api.main:app --reload --port 8000
+python run_api.py
 ```
 Interactive API docs will be available at: `http://localhost:8000/docs`.
 
 ### 4. Downstream ASR Demonstration
-AccentSense connects L1 influence predictions to downstream speech recognition (e.g. OpenAI Whisper prompt conditioning) to evaluate reductions in Word Error Rate (WER).
+AccentSense connects regional accent predictions to downstream speech recognition (e.g. OpenAI Whisper prompt conditioning) to evaluate reductions in Word Error Rate (WER).

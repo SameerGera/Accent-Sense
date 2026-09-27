@@ -2,6 +2,11 @@
 AccentSense Phase 5: Downstream Whisper ASR Adaptation Runner
 Benchmarks unadapted baseline vs. accent-conditioned ASR transcription
 and calculates Word Error Rate (WER), Character Error Rate (CER), and Relative WERR.
+
+Usage:
+    python downstream_asr.py --accent all
+    python downstream_asr.py --accent Northern --audio_path sample.wav
+    python downstream_asr.py --use_pretrained  # load real Whisper weights
 """
 
 import argparse
@@ -19,6 +24,10 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
+
 from src.asr.adaptation import (
     WhisperAccentAdaptor,
     REGIONAL_PROMPTS,
@@ -26,7 +35,8 @@ from src.asr.adaptation import (
     BENCHMARK_CORPUS,
 )
 
-TARGET_CLASSES = ["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil"]
+# 6 UK Regional Accent Classes
+TARGET_CLASSES = ["RP", "Scottish", "Welsh", "Northern", "West_Midlands", "Irish"]
 
 
 def print_asr_dashboard(res: Dict[str, Any]):
@@ -64,7 +74,7 @@ def print_asr_dashboard(res: Dict[str, Any]):
 
 def main():
     parser = argparse.ArgumentParser(description="AccentSense Phase 5: Downstream ASR Adaptation Runner")
-    parser.add_argument("--accent", type=str, default="all", choices=["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil", "all"], help="Accent class to evaluate")
+    parser.add_argument("--accent", type=str, default="all", choices=TARGET_CLASSES + ["all"], help="Accent class to evaluate")
     parser.add_argument("--audio_path", type=str, default=None, help="Path to audio file (optional)")
     parser.add_argument("--reference", type=str, default=None, help="Ground truth reference transcript (optional)")
     parser.add_argument("--use_pretrained", action="store_true", help="Download and load real Whisper model weights")
@@ -73,8 +83,13 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"\n[Phase 5 Init] Initializing Whisper ASR Adaptor on device: {device.upper()}")
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA GPU is required but was not detected.\n"
+            "Please ensure you have an NVIDIA GPU with CUDA drivers installed."
+        )
+    device = "cuda"
+    print(f"\n[Phase 5 Init] Initializing Whisper ASR Adaptor on device: {torch.cuda.get_device_name(0)}")
 
     adaptor = WhisperAccentAdaptor(
         model_name=args.model_name,
@@ -106,8 +121,8 @@ def main():
         print(f"\n[SUCCESS] ASR Adaptation Report written to: {out_file}")
         return
 
-    # Benchmark All 4 Regional Anchors
-    print("\n[Benchmark Execution] Evaluating Downstream Adaptation across all 4 Regional Anchors...")
+    # Benchmark All 6 UK Regional Accent Classes
+    print("\n[Benchmark Execution] Evaluating Downstream Adaptation across all 6 UK Regional Accent Classes...")
     all_evaluations = []
     werr_list = []
     wer_base_list, wer_adapt_list = [], []

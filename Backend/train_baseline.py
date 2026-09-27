@@ -1,13 +1,22 @@
 """
 Training and Evaluation Script for Phase 1 Classical Acoustic Baseline.
-Run with: python train_baseline.py [--data_csv PATH]
+6 UK Regional Accent Classes: RP, Scottish, Welsh, Northern, West_Midlands, Irish
+
+Usage:
+    python train_baseline.py [--data_csv PATH] [--splits_dir DIR]
 """
 
 import argparse
 import os
-import pandas as pd
+import sys
 import numpy as np
-from src.data.svarah_dataset import build_speaker_disjoint_splits
+import pandas as pd
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
+
+from src.data.svarah_dataset import build_speaker_disjoint_splits, REGIONAL_6CLASS_TARGETS
 from src.models.baseline_mfcc import ClassicalAcousticBaseline, extract_acoustic_features
 from tqdm import tqdm
 
@@ -15,6 +24,7 @@ from tqdm import tqdm
 def run_baseline_experiment(metadata_path: str = None, splits_dir: str = None, synthetic_fallback: bool = True):
     print("=" * 60)
     print("AccentSense: Classical Acoustic Baseline (MFCC + SVM/RF)")
+    print("6 UK Regional Accent Classes")
     print("=" * 60)
 
     # 1. Check if curated Phase 2 splits are available
@@ -32,7 +42,7 @@ def run_baseline_experiment(metadata_path: str = None, splits_dir: str = None, s
         print(f"Loaded dataset metadata: {len(df)} rows.")
         train_df, val_df, test_df = build_speaker_disjoint_splits(
             metadata_df=df,
-            target_col="primary_language",
+            target_col="accent",
             speaker_col="speaker_id",
             n_splits=5,
         )
@@ -42,22 +52,22 @@ def run_baseline_experiment(metadata_path: str = None, splits_dir: str = None, s
             np.random.seed(42)
             n_samples = 300
             speakers = [f"spk_{i}" for i in range(1, 31)]  # 30 speakers
-            languages = ["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil"]
+            accents = REGIONAL_6CLASS_TARGETS
 
             rows = []
             for i in range(n_samples):
                 spk = np.random.choice(speakers)
                 spk_idx = int(spk.split("_")[1])
-                lang = languages[spk_idx % len(languages)]
+                accent = accents[spk_idx % len(accents)]
                 rows.append({
                     "speaker_id": spk,
-                    "primary_language": lang,
+                    "accent": accent,
                     "dummy_audio_feature": np.random.randn(80),
                 })
             df = pd.DataFrame(rows)
             train_df, val_df, test_df = build_speaker_disjoint_splits(
                 metadata_df=df,
-                target_col="primary_language",
+                target_col="accent",
                 speaker_col="speaker_id",
                 n_splits=5,
             )
@@ -65,21 +75,26 @@ def run_baseline_experiment(metadata_path: str = None, splits_dir: str = None, s
             raise FileNotFoundError(f"Metadata file not found at: {metadata_path}")
 
     # Feature preparation
-    target_names = sorted(train_df["target"].unique())
+    target_names = sorted(train_df["target"].unique()) if "target" in train_df.columns else sorted(train_df["accent"].unique())
     label_to_id = {name: i for i, name in enumerate(target_names)}
 
     print(f"Target classes ({len(target_names)}): {target_names}")
 
+    # Use dummy features if available, otherwise extract from audio
     if "dummy_audio_feature" in train_df.columns:
         X_train = np.stack(train_df["dummy_audio_feature"].values)
         X_test = np.stack(test_df["dummy_audio_feature"].values)
-    else:
+    elif "audio_path" in train_df.columns:
         print("Extracting acoustic features from audio files...")
         X_train = np.array([extract_acoustic_features(p) for p in tqdm(train_df["audio_path"])])
         X_test = np.array([extract_acoustic_features(p) for p in tqdm(test_df["audio_path"])])
+    else:
+        print("[WARNING] No audio data available. Using random features for pipeline validation.")
+        X_train = np.random.randn(len(train_df), 80)
+        X_test = np.random.randn(len(test_df), 80)
 
-    y_train = np.array([label_to_id[lbl] for lbl in train_df["target"]])
-    y_test = np.array([label_to_id[lbl] for lbl in test_df["target"]])
+    y_train = np.array([label_to_id[lbl] for lbl in (train_df["target"] if "target" in train_df.columns else train_df["accent"])])
+    y_test = np.array([label_to_id[lbl] for lbl in (test_df["target"] if "target" in test_df.columns else test_df["accent"])])
 
     # Train SVM baseline
     print("\n--- Training SVM (RBF Kernel, Balanced) ---")
@@ -106,7 +121,7 @@ def run_baseline_experiment(metadata_path: str = None, splits_dir: str = None, s
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_csv", type=str, default=None, help="Path to Svarah metadata CSV")
+    parser.add_argument("--data_csv", type=str, default=None, help="Path to metadata CSV")
     parser.add_argument("--splits_dir", type=str, default="data/splits", help="Path to curated splits directory")
     args = parser.parse_args()
     run_baseline_experiment(metadata_path=args.data_csv, splits_dir=args.splits_dir)

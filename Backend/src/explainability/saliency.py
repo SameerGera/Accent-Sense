@@ -1,6 +1,8 @@
 ﻿"""
 Explainability Engine: Frame-level Saliency, Temporal Attribution, Phonetic Mapping,
 and Explanation Faithfulness (Area Under Deletion Curve - AUDC).
+
+6 UK Regional Accent Classes: RP, Scottish, Welsh, Northern, West_Midlands, Irish
 """
 
 import torch
@@ -14,7 +16,7 @@ try:
 except ImportError:
     CAPTUM_AVAILABLE = False
 
-# Documented phonological features for each of the 7 UK regional accents
+# Documented phonological features for each of the 6 UK regional accents
 PHONOLOGICAL_TRANSFER_RULES = {
     "RP": [
         {
@@ -104,24 +106,6 @@ PHONOLOGICAL_TRANSFER_RULES = {
         {
             "phenomenon": "STRUT Retraction",
             "description": "STRUT vowel is backer and slightly rounded compared to RP, approaching [ɔ] in some speakers.",
-        },
-    ],
-    "Cockney": [
-        {
-            "phenomenon": "H-Dropping",
-            "description": "Word-initial /h/ is variably deleted — e.g. 'house' -> [aʊs], 'happy' -> [api].",
-        },
-        {
-            "phenomenon": "TH-Fronting",
-            "description": "/θ/ and /ð/ replaced by labiodental fricatives /f/ and /v/ — e.g. 'think' -> [fɪŋk], 'brother' -> [brʌvə].",
-        },
-        {
-            "phenomenon": "Glottal Stop and L-vocalisation",
-            "description": "Word-final /l/ vocalises to [ʊ] (e.g. 'milk' -> [mɪʊk]) and /t/ glottalises robustly.",
-        },
-        {
-            "phenomenon": "MOUTH Diphthong Shift",
-            "description": "MOUTH vowel fronted and raised, approximately [mɑːf] — one of Cockney's most salient features.",
         },
     ],
     "Irish": [

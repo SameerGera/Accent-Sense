@@ -32,26 +32,22 @@ CLASSES = ("RP", "Scottish", "Welsh", "Northern", "West_Midlands", "Irish")
 N = len(CLASSES)  # 6
 
 
-def get_dml_device():
-    """Detects and returns the best hardware device: DirectML (AMD/Intel GPU) > CUDA > CPU."""
-    try:
-        import torch_directml
-        if torch_directml.is_available():
-            dml_device = torch_directml.device()
-            print("=" * 65)
-            print("✓ Hardware Acceleration: DirectML (DirectX 12 GPU)")
-            print(f"  Device: {dml_device}")
-            print("=" * 65)
-            return dml_device
-    except ImportError:
-        pass
-
+def get_cuda_device():
+    """Detects and returns the CUDA GPU device. CUDA is required."""
     if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("=" * 65)
         print("✓ Hardware Acceleration: NVIDIA CUDA")
-        return torch.device("cuda")
+        print(f"  Device: {torch.cuda.get_device_name(0)}")
+        print(f"  VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+        print("=" * 65)
+        return device
 
-    print("⚠ DirectML / CUDA not detected. Falling back to multi-threaded CPU.")
-    return torch.device("cpu")
+    raise RuntimeError(
+        "CUDA GPU is required for training but was not detected.\n"
+        "Please ensure you have an NVIDIA GPU with CUDA drivers installed.\n"
+        "For Google Colab: Runtime -> Change runtime type -> T4 GPU"
+    )
 
 
 def sanitize_manifests(classes):
@@ -86,7 +82,7 @@ def main():
     parser.add_argument("--output_dir", type=str, default=os.path.join(CURRENT_DIR, "checkpoints"))
     args = parser.parse_args()
 
-    device = get_dml_device()
+    device = get_cuda_device()
     os.makedirs(args.output_dir, exist_ok=True)
 
     # 1. Validate manifests exist

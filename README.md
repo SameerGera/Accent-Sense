@@ -1,4 +1,4 @@
-﻿# AccentSense: Explainable UK regional accent Detection in UK regional accent Speech
+﻿# AccentSense: Explainable UK Regional Accent Detection in Speech
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=flat&logo=pytorch&logoColor=white)](https://pytorch.org)
@@ -9,89 +9,98 @@
 [![Zero Speaker Leakage](https://img.shields.io/badge/Data%20Audit-0.0%25%20Leakage-success)](Backend/data/splits/split_audit_report.json)
 
 > **Research Capstone Project | Department of Computer Science & Engineering (AI/ML), VIT Bhopal**  
-> An explainable speech AI system that identifies native-language (L1) acoustic-phonetic influence in UK regional accent speech, grounds predictions in Second Language Acquisition (SLA) transfer phenomena via axiomatic attribution, and adapts downstream automatic speech recognition (ASR).
+> An explainable speech AI system that identifies acoustic-phonetic patterns in UK regional accent speech, grounds predictions in phonological analysis via axiomatic attribution, and adapts downstream automatic speech recognition (ASR).
 
 ---
 
-## ðŸŽ¯ Project Overview & Review 1 Highlights
+## 🎯 Project Overview & Review 1 Highlights
 
-UK regional accent is characterized by systematic phonological transfer from diverse substrate languages across Indo-Aryan and Dravidian language families. Conventional accent detection models operate as uninterpretable black boxes and frequently suffer from **speaker identity leakage** (evaluating on unseen utterances from the same speakers).
+UK regional accents are characterized by systematic phonological and prosodic variation across diverse speaker populations. Conventional accent detection models operate as uninterpretable black boxes and frequently suffer from **speaker identity leakage** (evaluating on unseen utterances from the same speakers).
 
 ---
 
-## ðŸ“ Repository Structure
+## 📁 Repository Structure
 
 ```
 Accent Sense/
-â”œâ”€â”€ package.json                   # Root package pointing to Frontend build scripts
-â”œâ”€â”€ vercel.json                    # 1-Click zero-config Vercel deployment configuration
-â”œâ”€â”€ .gitignore                     # Comprehensive git ignore for Python and Node
-â”œâ”€â”€ README.md                      # Primary project documentation (this file)
-â”‚
-â”œâ”€â”€ Backend/                       # Python Speech AI & REST API Service
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ api/main.py            # FastAPI endpoints (/health, /api/predict, /api/downstream-asr)
-â”‚   â”‚   â”œâ”€â”€ asr/adaptation.py      # Whisper prompt prefixing & WERR evaluation
-â”‚   â”‚   â”œâ”€â”€ data/                  # VCTK + Mozilla Common Voice dataset loader & speaker-disjoint curator
-â”‚   â”‚   â”œâ”€â”€ explainability/        # Captum Integrated Gradients & SLA transfer rules
-â”‚   â”‚   â””â”€â”€ models/                # WavLM Base+ with Attentive Statistics Pooling (ASP)
-â”‚   â”œâ”€â”€ checkpoints/               # Trained neural network weights (.pt)
-â”‚   â”œâ”€â”€ data/splits/               # Verified speaker-disjoint CSV splits (train, val, test)
-â”‚   â”œâ”€â”€ notebooks/                 # Google Colab 1-Click GPU training notebook
-â”‚   â”œâ”€â”€ reports/                   # Audit reports, XAI faithfulness, ASR benchmarks
-â”‚   â”œâ”€â”€ curate_data.py             # Phase 2 dataset curation script
-â”‚   â”œâ”€â”€ train_baseline.py          # Phase 1 classical baseline trainer
-â”‚   â”œâ”€â”€ train_wavlm.py             # Phase 3 deep WavLM training pipeline
-â”‚   â”œâ”€â”€ explain_speech.py          # Phase 4 XAI attribution & AUDC verification runner
-â”‚   â”œâ”€â”€ downstream_asr.py          # Phase 5 downstream Whisper adaptation runner
-â”‚   â””â”€â”€ run_api.py                 # FastAPI service launcher (port 8000)
-â”‚
-â””â”€â”€ Frontend/                      # Vite + React + TypeScript + Tailwind CSS UI
-    â”œâ”€â”€ src/
-    â”‚   â”œâ”€â”€ components/
-    â”‚   â”‚   â”œâ”€â”€ Hero3D.tsx         # Interactive 3D hero visualization
-    â”‚   â”‚   â””â”€â”€ LandingPage.tsx    # Live audio upload, waveform, saliency cards, ASR demo
-    â”‚   â”œâ”€â”€ App.tsx                # Application root
-    â”‚   â””â”€â”€ index.css              # Custom styling & animations
-    â”œâ”€â”€ .env.example               # Environment variables template (VITE_API_URL)
-    â”œâ”€â”€ package.json               # Frontend dependencies (lucide-react, tailwindcss, vite)
-    â””â”€â”€ vite.config.ts             # Vite configuration with @/ path alias
+├── package.json                   # Root package pointing to Frontend build scripts
+├── vercel.json                    # 1-Click zero-config Vercel deployment configuration
+├── .gitignore                     # Comprehensive git ignore for Python and Node
+├── README.md                      # Primary project documentation (this file)
+│
+├── Backend/                       # Python Speech AI & REST API Service
+│   ├── src/
+│   │   ├── api/main.py            # FastAPI endpoints (/health, /api/predict, /api/downstream-asr)
+│   │   ├── asr/adaptation.py      # Whisper prompt prefixing & WERR evaluation
+│   │   ├── data/                  # VCTK + Mozilla Common Voice dataset loader & speaker-disjoint curator
+│   │   ├── explainability/        # Captum Integrated Gradients & phonological transfer rules
+│   │   └── models/                # WavLM Base+ with Attentive Statistics Pooling (ASP)
+│   ├── checkpoints/               # Trained neural network weights (.pt)
+│   ├── data/splits/               # Verified speaker-disjoint CSV splits (train, val, test)
+│   ├── notebooks/                 # Google Colab 1-Click GPU training notebook
+│   ├── reports/                   # Audit reports, XAI faithfulness, ASR benchmarks
+│   ├── curate_data.py             # Phase 2 dataset curation script
+│   ├── train_baseline.py          # Phase 1 classical baseline trainer
+│   ├── train_wavlm.py             # Phase 3 deep WavLM training pipeline
+│   ├── explain_speech.py          # Phase 4 XAI attribution & AUDC verification runner
+│   ├── downstream_asr.py          # Phase 5 downstream Whisper adaptation runner
+│   └── run_api.py                 # FastAPI service launcher (port 8000)
+│
+└── Frontend/                      # Vite + React + TypeScript + Tailwind CSS UI
+    ├── src/
+    │   ├── components/
+    │   │   ├── Hero3D.tsx         # Interactive 3D hero visualization
+    │   │   └── LandingPage.tsx    # Live audio upload, waveform, saliency cards, ASR demo
+    │   ├── App.tsx                # Application root
+    │   └── index.css              # Custom styling & animations
+    ├── .env.example               # Environment variables template (VITE_API_URL)
+    ├── package.json               # Frontend dependencies (lucide-react, tailwindcss, vite)
+    └── vite.config.ts             # Vite configuration with @/ path alias
 ```
 
 ---
 
-## âš¡ Quickstart Guide
+## ⚡ Quickstart Guide
 
-### 1. Launch the Backend API (Terminal 1)
-```powershell
-cd Backend
-.venv\Scripts\python.exe run_api.py
+### 1. Install Dependencies
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r Backend/requirements.txt
 ```
-*On Linux / macOS:*
+
+### 2. Download Data & Build Manifests
 ```bash
 cd Backend
-source .venv/bin/activate
+python download_data.py
+```
+This downloads UK accent audio data and creates speaker-disjoint train/val/test splits at `Backend/data/manifests/`.
+
+### 3. Train the Model (CUDA GPU required)
+```bash
+python train_wavlm.py --epochs 20 --batch_size 8
+```
+Output: `Backend/checkpoints/best_wavlm_accentsense.pt`
+
+### 4. Launch the Backend API (Terminal 1)
+```bash
 python run_api.py
 ```
 - API Server runs at: `http://localhost:8000`
 - Interactive OpenAPI Docs: `http://localhost:8000/docs`
 - Health Check: `http://localhost:8000/health`
 
-### 2. Launch the Frontend UI (Terminal 2)
-You can start the frontend either from the project root or from `Frontend/`:
+### 5. Launch the Frontend UI (Terminal 2)
 ```bash
-# From project root:
-npm run dev
-
-# Or inside Frontend:
 cd Frontend
+npm install
 npm run dev
 ```
 - Web Application runs at: `http://localhost:5173`
 
 ---
 
-## â˜ï¸ Deploying to Vercel (1-Click Deployment)
+## ☁️ Deploying to Vercel (1-Click Deployment)
 
 The repository is configured with a root `package.json` and `vercel.json` for deployment on Vercel:
 
@@ -101,7 +110,7 @@ The repository is configured with a root `package.json` and `vercel.json` for de
    - **Framework Preset**: Vite
    - **Build Command**: `npm --prefix Frontend run build`
    - **Output Directory**: `Frontend/dist`
-4. In **Project Settings $\to$ Environment Variables**, optionally set:
+4. In **Project Settings → Environment Variables**, optionally set:
    ```text
    VITE_API_URL = https://your-accentsense-backend.onrender.com
    ```
@@ -110,20 +119,21 @@ The repository is configured with a root `package.json` and `vercel.json` for de
 
 ---
 
-## ðŸš€ 1-Click GPU Training on Google Colab
+## 🚀 Training on Google Colab (Alternative)
 
-To train the full 95M-parameter `WavLM Base+` backbone on a free Google Colab NVIDIA T4 GPU:
-1. Open [`Backend/notebooks/train_accentsense_colab.ipynb`](Backend/notebooks/train_accentsense_colab.ipynb) on [Google Colab](https://colab.research.google.com).
+To train on a free Google Colab NVIDIA T4 GPU instead of locally:
+1. Open [`Backend/notebooks/train_accentsense_colab_final_2.ipynb`](Backend/notebooks/train_accentsense_colab_final_2.ipynb) on [Google Colab](https://colab.research.google.com).
 2. Set runtime to **GPU** (`Runtime -> Change runtime type -> T4 GPU`).
 3. Click **Run All**.
-4. The notebook runs `train_wavlm.py` for 15 epochs, runs `explain_speech.py`, and downloads `best_wavlm_accentsense.pt`.
-5. Move `best_wavlm_accentsense.pt` into `Backend/checkpoints/` â€” the backend API immediately switches from prototype mode to live neural network inference!
+4. The notebook downloads data, builds manifests, and trains for 20 epochs.
+5. Download `best_wavlm_accentsense.pt` from Colab and place it in `Backend/checkpoints/`.
+
+**For local CUDA training, use the Quickstart Guide above (`python train_wavlm.py`).**
 
 ---
 
-## ðŸ“œ Academic Integrity & Citation
+## 📜 Academic Integrity & Citation
 All experimental results reported in this repository adhere to strict academic honesty standards:
 - The classical baseline results (**Macro-F1: 0.3207**) were empirically computed on local speaker-disjoint splits.
 - Zero speaker leakage is proven in [`split_audit_report.json`](Backend/data/splits/split_audit_report.json).
-- The prototype API clearly distinguishes calibrated SLA phonological benchmarks from GPU-trained model weights.
-
+- The prototype API clearly distinguishes calibrated phonological benchmarks from GPU-trained model weights.

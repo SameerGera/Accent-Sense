@@ -80,14 +80,18 @@ FAMILY_MAP = {
     "Welsh": "Welsh English / Cymraeg substrate (Wales)",
     "Northern": "Northern English dialects (Yorkshire, Geordie, Manchester)",
     "West_Midlands": "West Midlands English / Brummie (Birmingham, Wolverhampton)",
-    "Cockney": "London Cockney / Estuary English (East London)",
     "Irish": "Irish English / Hiberno-English (Dublin, Ireland)",
 }
 
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MB
 MAX_AUDIO_DURATION_SEC = 30.0
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+if not torch.cuda.is_available():
+    raise RuntimeError(
+        "CUDA GPU is required for AccentSense API but was not detected.\n"
+        "Please ensure you have an NVIDIA GPU with CUDA drivers installed."
+    )
+device = "cuda"
 
 # ---------------------------------------------------------------------------
 # Pydantic Models

@@ -1,42 +1,35 @@
 ﻿"""
-Training and Fine-Tuning Pipeline for WavLM Base+ on UK Regional Accent Classification (VCTK + Common Voice).
-Ready for Local execution or Google Colab / Kaggle GPU execution.
+Training and Fine-Tuning Pipeline for WavLM Base+ on UK Regional Accent Classification.
+Ready for Local GPU execution (CUDA / DirectML) or Google Colab.
+
+Usage:
+    python train_wavlm.py --epochs 20 --batch_size 8 --lr 3e-4
+    python train_wavlm.py --dry_run  # sanity check without training
 """
 
 import argparse
 import os
+import sys
+import json
+from collections import Counter
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from transformers import get_cosine_schedule_with_warmup
-import pandas as pd
-import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
-from src.data.vctk_dataset import UKAccentDataset, collate_pad, load_manifest, CLASSES
+
+# Ensure Backend directory is on Python path
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
+
+from src.data.vctk_dataset import UKAccentDataset, collate_pad, load_manifest
 from src.models.wavlm_classifier import WavLMAccentClassifier
 
-
-def collate_audio_batch(batch):
-    """
-    Pads variable length audio waveforms to the maximum length in the batch.
-    """
-    waveforms = [item["input_values"] for item in batch]
-    labels = torch.stack([item["label"] for item in batch])
-    lengths = [len(w) for w in waveforms]
-    max_len = max(lengths)
-
-    padded_waveforms = torch.zeros(len(waveforms), max_len)
-    attention_mask = torch.zeros(len(waveforms), max_len, dtype=torch.long)
-
-    for i, w in enumerate(waveforms):
-        padded_waveforms[i, :len(w)] = w
-        attention_mask[i, :len(w)] = 1
-
-    return {
-        "input_values": padded_waveforms,
-        "attention_mask": attention_mask,
-        "labels": labels,
-    }
+# 6 UK Regional Accent Classes
+CLASSES = ("RP", "Scottish", "Welsh", "Northern", "West_Midlands", "Irish")
+N = len(CLASSES)
 
 
 def train_one_epoch(model, dataloader, optimizer, scheduler, criterion, device):
@@ -44,13 +37,13 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, criterion, device):
     total_loss = 0.0
     all_preds, all_labels = [], []
 
-    for batch in dataloader:
-        inputs = batch["input_values"].to(device)
-        mask = batch["attention_mask"].to(device)
-        labels = batch["labels"].to(device)
+    for wav, labels, mask in dataloader:
+        wav = wav.to(device)
+        mask = mask.to(device)
+        labels = labels.to(device)
 
         optimizer.zero_grad()
-        outputs = model(inputs, attention_mask=mask)
+        outputs = model(wav, attention_mask=mask)
         logits = outputs["logits"]
 
         loss = criterion(logits, labels)
@@ -61,9 +54,9 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, criterion, device):
         scheduler.step()
 
         total_loss += loss.item() * len(labels)
-        preds = torch.argmax(logits, dim=-1).detach().cpu().numpy()
+        preds = torch.argmax(logits, dim=-1).detach().cpu().tolist()
         all_preds.extend(preds)
-        all_labels.extend(labels.detach().cpu().numpy())
+        all_labels.extend(labels.detach().cpu().tolist())
 
     epoch_loss = total_loss / len(all_labels)
     acc = accuracy_score(all_labels, all_preds)
@@ -77,19 +70,19 @@ def evaluate(model, dataloader, criterion, device):
     all_preds, all_labels = [], []
 
     with torch.no_grad():
-        for batch in dataloader:
-            inputs = batch["input_values"].to(device)
-            mask = batch["attention_mask"].to(device)
-            labels = batch["labels"].to(device)
+        for wav, labels, mask in dataloader:
+            wav = wav.to(device)
+            mask = mask.to(device)
+            labels = labels.to(device)
 
-            outputs = model(inputs, attention_mask=mask)
+            outputs = model(wav, attention_mask=mask)
             logits = outputs["logits"]
             loss = criterion(logits, labels)
 
             total_loss += loss.item() * len(labels)
-            preds = torch.argmax(logits, dim=-1).cpu().numpy()
+            preds = torch.argmax(logits, dim=-1).cpu().tolist()
             all_preds.extend(preds)
-            all_labels.extend(labels.cpu().numpy())
+            all_labels.extend(labels.cpu().tolist())
 
     epoch_loss = total_loss / len(all_labels)
     acc = accuracy_score(all_labels, all_preds)
@@ -99,91 +92,93 @@ def evaluate(model, dataloader, criterion, device):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train WavLM Base+ for L1 Influence Detection.")
+    parser = argparse.ArgumentParser(description="Train WavLM Base+ for UK Regional Accent Classification.")
     parser.add_argument("--model_name", type=str, default="microsoft/wavlm-base-plus")
-    parser.add_argument("--splits_dir", type=str, default="data/splits", help="Directory containing CSV splits")
-    parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--epochs", type=int, default=5)
-    parser.add_argument("--lr_head", type=float, default=1e-4)
-    parser.add_argument("--lr_backbone", type=float, default=1e-5)
+    parser.add_argument("--manifests_dir", type=str, default="data/manifests", help="Directory containing JSON manifests")
+    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--freeze_encoder", action="store_true", default=True)
     parser.add_argument("--unfreeze_top_k", type=int, default=2)
     parser.add_argument("--output_dir", type=str, default="./checkpoints")
     parser.add_argument("--dry_run", action="store_true", default=False, help="Run single batch sanity check")
     args = parser.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA GPU is required for training but was not detected.\n"
+            "Please ensure you have an NVIDIA GPU with CUDA drivers installed.\n"
+            "For Google Colab: Runtime -> Change runtime type -> T4 GPU"
+        )
+    device = torch.device("cuda")
     print("=" * 65)
-    print(f"AccentSense Phase 3: WavLM Base+ UK Accent Classification Training")
-    print(f"Device: {device} | Model: {args.model_name}")
+    print("AccentSense: WavLM Base+ UK Accent Classification Training")
+    print(f"Device: {device} ({torch.cuda.get_device_name(0)}) | Model: {args.model_name}")
+    print(f"Classes ({N}): {CLASSES}")
     print("=" * 65)
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # 1. Load curated Phase 2 splits
-    train_csv = os.path.join(args.splits_dir, "train_speaker_disjoint.csv")
-    val_csv = os.path.join(args.splits_dir, "val_speaker_disjoint.csv")
+    # 1. Load JSON manifests
+    train_path = os.path.join(args.manifests_dir, "train.json")
+    val_path = os.path.join(args.manifests_dir, "val.json")
 
-    if not os.path.exists(train_csv):
-        raise FileNotFoundError(f"Curated splits not found at `{args.splits_dir}`. Run `python curate_data.py` first.")
+    if not os.path.exists(train_path):
+        raise FileNotFoundError(
+            f"Train manifest not found at `{train_path}`. "
+            "Run the notebook or curate_data.py first, or use --manifests_dir."
+        )
 
-    train_df = pd.read_csv(train_csv)
-    val_df = pd.read_csv(val_csv)
+    train_manifest = load_manifest(train_path)
+    val_manifest = load_manifest(val_path) if os.path.exists(val_path) else []
 
-    # Build consistent label vocabulary across splits
-    unique_labels = sorted(train_df["target"].unique())
-    label_to_id = {lbl: i for i, lbl in enumerate(unique_labels)}
-    num_classes = len(unique_labels)
-    print(f"[Dataset] Target classes ({num_classes}): {unique_labels}")
-    print(f"Loaded Splits -> Train: {len(train_df)} samples | Val: {len(val_df)} samples")
+    # 2. Sanitize class indices
+    for split_name, split_data in [("train", train_manifest), ("val", val_manifest)]:
+        for e in split_data:
+            if e["label"] in CLASSES:
+                e["class_idx"] = CLASSES.index(e["label"])
 
-    # 2. Ensure real audio files exist on disk
-    first_audio = train_df.iloc[0]["audio_path"]
-    if not os.path.exists(first_audio):
-        print(f"\n[Audio Check] Audio files not found at `{first_audio}`.")
-        print("Generating regional acoustic speech waveforms so model trains on real signal...")
-        try:
-            from generate_audio import generate_all_split_audio
-            generate_all_split_audio(splits_dir=args.splits_dir)
-        except Exception as e:
-            print(f"[Warning] Could not auto-generate audio: {e}")
+    print(f"Loaded Splits -> Train: {len(train_manifest)} samples | Val: {len(val_manifest)} samples")
 
     # 3. Build Datasets & DataLoaders
-    train_dataset = SvarahSpeechDataset(train_df, label_to_id=label_to_id)
-    val_dataset = SvarahSpeechDataset(val_df, label_to_id=label_to_id)
+    train_dataset = UKAccentDataset(train_manifest, augment=True)
+    val_dataset = UKAccentDataset(val_manifest, augment=False)
 
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        collate_fn=collate_audio_batch,
+        collate_fn=collate_pad,
+        num_workers=2,
+        pin_memory=True,
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        collate_fn=collate_audio_batch,
+        collate_fn=collate_pad,
+        num_workers=2,
     )
 
-    # 3. Compute Class Weights for balanced loss
-    class_counts = train_df["target"].value_counts()
-    total_samples = len(train_df)
-    weights = [total_samples / (num_classes * class_counts[lbl]) for lbl in unique_labels]
+    # 4. Compute Class Weights for balanced loss
+    class_counts = Counter(e["class_idx"] for e in train_manifest)
+    total_samples = len(train_manifest)
+    weights = [total_samples / (N * class_counts.get(i, 1)) for i in range(N)]
     class_weights = torch.tensor(weights, dtype=torch.float).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     if args.dry_run:
-        print("\n[Dry Run Sanity Check] Initializing pipeline check...")
+        print("\n[Dry Run Sanity Check]")
         print(f"Class Weights: {weights}")
-        print(f"Collate & Batching Verified: Batch size = {args.batch_size}")
-        print(f"[SUCCESS] Ready for GPU training execution on Google Colab or Local GPU.")
+        print(f"Train batches: {len(train_loader)} | Val batches: {len(val_loader)}")
+        print(f"[SUCCESS] Ready for GPU training on {device}.")
         return
 
-    # 4. Initialize WavLM Model
+    # 5. Initialize WavLM Model
     print(f"\n[Model Initialization] Loading {args.model_name}...")
-    model = WavLMForL1Influence(
+    model = WavLMAccentClassifier(
         pretrained_model_name=args.model_name,
-        num_classes=num_classes,
+        num_classes=N,
         freeze_encoder=args.freeze_encoder,
         unfreeze_top_k_layers=args.unfreeze_top_k,
     ).to(device)
@@ -193,16 +188,18 @@ def main():
     head_params = [p for p in model.asp.parameters()] + [p for p in model.classifier.parameters()]
 
     optimizer_grouped_parameters = [
-        {"params": head_params, "lr": args.lr_head},
+        {"params": head_params, "lr": args.lr},
     ]
     if len(backbone_params) > 0:
-        optimizer_grouped_parameters.append({"params": backbone_params, "lr": args.lr_backbone})
+        optimizer_grouped_parameters.append({"params": backbone_params, "lr": args.lr / 10})
 
     optimizer = torch.optim.AdamW(optimizer_grouped_parameters, weight_decay=0.01)
     total_steps = len(train_loader) * args.epochs
-    scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=int(total_steps * 0.1), num_training_steps=total_steps)
+    scheduler = get_cosine_schedule_with_warmup(
+        optimizer, num_warmup_steps=int(total_steps * 0.1), num_training_steps=total_steps
+    )
 
-    # 5. Training Loop
+    # 6. Training Loop
     best_val_f1 = 0.0
     best_checkpoint_path = os.path.join(args.output_dir, "best_wavlm_accentsense.pt")
 
@@ -235,9 +232,10 @@ def main():
             torch.save(model.state_dict(), best_checkpoint_path)
             print(f"  --> Saved new best checkpoint to: {best_checkpoint_path} (Val Macro-F1: {val_f1:.4f})")
 
-    print("\n[Phase 3 Complete] Model training loop executed successfully.")
+    print("\n[Training Complete] Model training loop executed successfully.")
+    print(f"  Best Val Macro-F1: {best_val_f1:.4f}")
+    print(f"  Checkpoint: {best_checkpoint_path}")
 
 
 if __name__ == "__main__":
     main()
-

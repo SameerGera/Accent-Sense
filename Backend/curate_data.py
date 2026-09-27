@@ -13,7 +13,7 @@ from src.data.curate_dataset import curate_and_export_splits
 import argparse
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Curate Svarah dataset into 4-class regional splits.")
+    parser = argparse.ArgumentParser(description="Curate dataset into speaker-disjoint splits.")
     parser.add_argument("--csv_path", type=str, default=None, help="Path to Svarah metadata CSV")
     parser.add_argument("--output_dir", type=str, default="data/splits", help="Output directory for CSV splits")
     args = parser.parse_args()

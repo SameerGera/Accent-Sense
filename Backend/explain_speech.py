@@ -1,7 +1,12 @@
 """
 AccentSense Phase 4: Explainability & Phonetic Grounding Runner
-Computes temporal attribution, maps salient regions to SLA phonological phenomena,
+Computes temporal attribution, maps salient regions to phonological phenomena,
 and rigorously verifies explanation faithfulness via Area Under Deletion Curve (AUDC).
+
+Usage:
+    python explain_speech.py --audio_path sample.wav
+    python explain_speech.py --benchmark_all
+    python explain_speech.py --mock_backbone  # fast local verification
 """
 
 import argparse
@@ -11,7 +16,6 @@ import json
 import torch
 import torchaudio
 import numpy as np
-import pandas as pd
 from typing import Dict, List, Any, Optional
 
 if sys.platform == "win32":
@@ -21,7 +25,11 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from src.models.wavlm_classifier import WavLMForL1Influence
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
+
+from src.models.wavlm_classifier import WavLMAccentClassifier
 from src.explainability.saliency import (
     compute_temporal_saliency,
     map_explanations_to_phonetics,
@@ -29,7 +37,8 @@ from src.explainability.saliency import (
     PHONOLOGICAL_TRANSFER_RULES,
 )
 
-TARGET_CLASSES = ["Northern_Hindi", "Central_MP", "Western_Gujarati", "Southern_Tamil"]
+# 6 UK Regional Accent Classes
+TARGET_CLASSES = ["RP", "Scottish", "Welsh", "Northern", "West_Midlands", "Irish"]
 CLASS_TO_IDX = {cls_name: i for i, cls_name in enumerate(TARGET_CLASSES)}
 IDX_TO_CLASS = {i: cls_name for i, cls_name in enumerate(TARGET_CLASSES)}
 
@@ -52,9 +61,9 @@ def load_audio_or_synthesize(audio_path: Optional[str] = None, duration_sec: flo
     np.random.seed(seed)
     num_samples = int(duration_sec * sample_rate)
     t = np.linspace(0, duration_sec, num_samples)
-    f0 = 140.0 + 15.0 * np.sin(2 * np.pi * 1.5 * t)  # 140 Hz F0 contour
-    f1 = 550.0   # First formant ~ 550 Hz
-    f2 = 1750.0  # Second formant ~ 1750 Hz
+    f0 = 140.0 + 15.0 * np.sin(2 * np.pi * 1.5 * t)
+    f1 = 550.0
+    f2 = 1750.0
 
     signal = (
         0.5 * np.sin(2 * np.pi * f0 * t)
@@ -62,14 +71,13 @@ def load_audio_or_synthesize(audio_path: Optional[str] = None, duration_sec: flo
         + 0.15 * np.sin(2 * np.pi * f2 * t)
         + 0.05 * np.random.normal(0, 1, num_samples)
     )
-    # Apply syllable-like amplitude modulation
     envelope = np.abs(np.sin(2 * np.pi * 3.0 * t)) ** 1.5
     signal = signal * envelope
     signal = signal / (np.max(np.abs(signal)) + 1e-8)
     return torch.tensor(signal, dtype=torch.float32)
 
 
-def get_model(checkpoint_path: Optional[str] = None, device: str = "cpu", mock_backbone: bool = False) -> WavLMForL1Influence:
+def get_model(checkpoint_path: Optional[str] = None, device: str = "cpu", mock_backbone: bool = False) -> WavLMAccentClassifier:
     """
     Initializes the WavLM classifier and loads trained weights if available.
     """
@@ -77,14 +85,14 @@ def get_model(checkpoint_path: Optional[str] = None, device: str = "cpu", mock_b
         from transformers import WavLMConfig
         print("[Model Loader] Initializing lightweight WavLM backbone for fast execution...")
         cfg = WavLMConfig(hidden_size=64, num_hidden_layers=2, num_attention_heads=2, intermediate_size=128)
-        model = WavLMForL1Influence(
+        model = WavLMAccentClassifier(
             num_classes=len(TARGET_CLASSES),
             freeze_encoder=True,
             config=cfg,
         )
     else:
-        print(f"[Model Loader] Initializing WavLMForL1Influence (Classes: {len(TARGET_CLASSES)})...")
-        model = WavLMForL1Influence(
+        print(f"[Model Loader] Initializing WavLMAccentClassifier (Classes: {len(TARGET_CLASSES)})...")
+        model = WavLMAccentClassifier(
             pretrained_model_name="microsoft/wavlm-base-plus",
             num_classes=len(TARGET_CLASSES),
             freeze_encoder=True,
@@ -104,7 +112,7 @@ def get_model(checkpoint_path: Optional[str] = None, device: str = "cpu", mock_b
 
 
 def run_single_explanation(
-    model: WavLMForL1Influence,
+    model: WavLMAccentClassifier,
     waveform: torch.Tensor,
     audio_label: str = "Sample Audio",
     true_class: Optional[str] = None,
@@ -128,7 +136,7 @@ def run_single_explanation(
     pred_class = IDX_TO_CLASS.get(pred_idx, f"Class_{pred_idx}")
     pred_prob = saliency_result["probabilities"][pred_idx]
 
-    # 2. SLA Phonetic Mapping
+    # 2. Phonetic Mapping
     annotated_regions = map_explanations_to_phonetics(
         language_name=pred_class,
         salient_regions=saliency_result["salient_regions"],
@@ -171,8 +179,8 @@ def print_explanation_dashboard(result: Dict[str, Any]):
     print(f" Audio Target     : {result['audio_label']}")
     print(f" Duration         : {result['total_duration_sec']}s ({result['num_frames']} frames at 50Hz / 20ms)")
     if result.get("true_class"):
-        print(f" Ground Truth L1  : {result['true_class']}")
-    print(f" Predicted L1     : {result['predicted_class']} (Confidence: {result['prediction_confidence']*100:.2f}%)")
+        print(f" Ground Truth     : {result['true_class']}")
+    print(f" Predicted Accent : {result['predicted_class']} (Confidence: {result['prediction_confidence']*100:.2f}%)")
     print(f" Attribution Tool : {result['attribution_method'].upper()} (WavLM Attentive Statistics)")
     print("-" * 78)
 
@@ -182,7 +190,7 @@ def print_explanation_dashboard(result: Dict[str, Any]):
         marker = "<-- PREDICTED" if cls_name == result["predicted_class"] else ""
         print(f"  {cls_name:<18} : [{bar:<30}] {prob*100:6.2f}% {marker}")
 
-    print("\n[Identified Salient Segments & SLA Transfer Cards]")
+    print("\n[Identified Salient Segments & Phonological Transfer Cards]")
     regions = result["salient_regions"]
     if not regions:
         print("  * No contiguous salient segments exceeded the 75th percentile (>=100ms threshold).")
@@ -217,13 +225,18 @@ def main():
     parser.add_argument("--method", type=str, default="integrated_gradients", choices=["integrated_gradients", "gradient"])
     parser.add_argument("--n_steps", type=int, default=15, help="Interpolation steps for Integrated Gradients")
     parser.add_argument("--output_dir", type=str, default="reports", help="Directory to save JSON reports")
-    parser.add_argument("--benchmark_all", action="store_true", help="Run faithfulness benchmark across all 4 regional classes")
+    parser.add_argument("--benchmark_all", action="store_true", help="Run faithfulness benchmark across all 6 UK accent classes")
     parser.add_argument("--mock_backbone", action="store_true", help="Use lightweight backbone for instant local verification")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"\n[Phase 4 Init] Running Explainability Runner on device: {device.upper()}")
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA GPU is required but was not detected.\n"
+            "Please ensure you have an NVIDIA GPU with CUDA drivers installed."
+        )
+    device = "cuda"
+    print(f"\n[Phase 4 Init] Running Explainability Runner on device: {torch.cuda.get_device_name(0)}")
 
     # 1. Load Model
     model = get_model(checkpoint_path=args.checkpoint, device=device, mock_backbone=args.mock_backbone)
@@ -246,16 +259,18 @@ def main():
         print(f"[SUCCESS] Explanation report written to: {out_path}")
         return
 
-    # 3. Multi-class benchmark over the 4 Regional Anchors
-    print("\n[Benchmark Mode] Evaluating 4 Regional Anchor classes...")
-    test_split_path = "data/splits/test_speaker_disjoint.csv"
-    test_df = None
-    if os.path.exists(test_split_path):
+    # 3. Multi-class benchmark over the 6 UK Regional Accent Classes
+    print("\n[Benchmark Mode] Evaluating 6 UK Regional Accent Classes...")
+    test_manifest_path = os.path.join(CURRENT_DIR, "data", "manifests", "test.json")
+    test_manifest = None
+    if os.path.exists(test_manifest_path):
         try:
-            test_df = pd.read_csv(test_split_path)
-            print(f"Loaded verified test split with {len(test_df)} samples across {test_df['speaker_id'].nunique()} speakers.")
+            with open(test_manifest_path, "r", encoding="utf-8") as f:
+                test_manifest = json.load(f)
+            speakers = len(set(e.get("speaker", "unknown") for e in test_manifest))
+            print(f"Loaded verified test manifest with {len(test_manifest)} samples across {speakers} speakers.")
         except Exception:
-            test_df = None
+            test_manifest = None
 
     all_results = []
     summary_metrics = {
@@ -272,11 +287,11 @@ def main():
 
     for idx, target_class in enumerate(TARGET_CLASSES):
         audio_path = None
-        if test_df is not None:
-            class_samples = test_df[test_df["target"] == target_class]
-            if len(class_samples) > 0 and "file_path" in class_samples.columns:
-                cand_path = class_samples.iloc[0]["file_path"]
-                if os.path.exists(cand_path):
+        if test_manifest is not None:
+            class_samples = [e for e in test_manifest if e.get("label") == target_class]
+            if len(class_samples) > 0:
+                cand_path = class_samples[0].get("path", "")
+                if cand_path and os.path.exists(cand_path):
                     audio_path = cand_path
 
         waveform = load_audio_or_synthesize(audio_path, duration_sec=4.0, seed=100 + idx * 37)

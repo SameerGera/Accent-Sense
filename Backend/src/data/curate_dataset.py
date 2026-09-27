@@ -1,7 +1,9 @@
 """
-Phase 2: Data Pipeline & 4-Class Regional Taxonomy Curation Script.
-Ingests Svarah or benchmark metadata, filters into the 4 regional anchors,
+Phase 2: Data Pipeline & 6-Class UK Regional Accent Curation Script.
+Ingests VCTK / English Dialects metadata, filters into the 6 regional anchors,
 and exports guaranteed speaker-disjoint splits into `data/splits/`.
+
+6 Target Classes: RP, Scottish, Welsh, Northern, West_Midlands, Irish
 """
 
 import os
@@ -11,23 +13,23 @@ import pandas as pd
 import numpy as np
 from src.data.svarah_dataset import (
     build_speaker_disjoint_splits,
-    label_regional_4class,
-    REGIONAL_4CLASS_TARGETS,
+    REGIONAL_6CLASS_TARGETS,
 )
 
 
-def generate_representative_metadata(num_speakers: int = 40, samples_per_speaker: int = 15) -> pd.DataFrame:
+def generate_representative_metadata(num_speakers: int = 60, samples_per_speaker: int = 10) -> pd.DataFrame:
     """
-    Generates a calibrated multi-speaker benchmark matching Svarah's exact 11 metadata columns.
-    Used for local development, pipeline validation, and Review 1 reproducibility.
+    Generates a calibrated multi-speaker benchmark matching UK accent distribution.
+    Used for local development, pipeline validation, and reproducibility.
     """
     np.random.seed(42)
     regions = [
-        {"state": "Madhya Pradesh", "districts": ["Bhopal", "Indore", "Jabalpur", "Gwalior"], "lang": "Hindi"},
-        {"state": "Gujarat", "districts": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"], "lang": "Gujarati"},
-        {"state": "Delhi", "districts": ["New Delhi", "North Delhi", "South Delhi"], "lang": "Hindi"},
-        {"state": "Uttar Pradesh", "districts": ["Lucknow", "Kanpur", "Noida"], "lang": "Hindi"},
-        {"state": "Tamil Nadu", "districts": ["Chennai", "Coimbatore", "Madurai"], "lang": "Tamil"},
+        {"accent": "RP", "count": num_speakers // 6},
+        {"accent": "Scottish", "count": num_speakers // 6},
+        {"accent": "Welsh", "count": num_speakers // 6},
+        {"accent": "Northern", "count": num_speakers // 6},
+        {"accent": "West_Midlands", "count": num_speakers // 6},
+        {"accent": "Irish", "count": num_speakers // 6},
     ]
 
     sentences = [
@@ -43,13 +45,10 @@ def generate_representative_metadata(num_speakers: int = 40, samples_per_speaker
     speaker_id_counter = 1
 
     for region in regions:
-        # 8 speakers per regional grouping
-        for _ in range(num_speakers // len(regions)):
+        for _ in range(region["count"]):
             spk_id = f"spk_{speaker_id_counter:03d}"
             gender = np.random.choice(["Male", "Female"])
             age_group = np.random.choice(["18-30", "30-45", "45-60"])
-            district = np.random.choice(region["districts"])
-            speaker_id_counter += 1
 
             for s_idx in range(samples_per_speaker):
                 text = np.random.choice(sentences)
@@ -60,13 +59,10 @@ def generate_representative_metadata(num_speakers: int = 40, samples_per_speaker
                     "text": text,
                     "gender": gender,
                     "age-group": age_group,
-                    "native_place_state": region["state"],
-                    "native_place_district": district,
-                    "primary_language": region["lang"],
-                    "highest_qualification": "Graduate",
-                    "job_category": "Full Time",
+                    "accent": region["accent"],
                     "audio_path": f"data/audio/{spk_id}_{s_idx:02d}.wav",
                 })
+            speaker_id_counter += 1
 
     df = pd.DataFrame(rows)
     return df
@@ -79,26 +75,26 @@ def curate_and_export_splits(
 ):
     os.makedirs(output_dir, exist_ok=True)
     print("=" * 65)
-    print("AccentSense Phase 2: Data Pipeline & Regional 4-Class Curation")
+    print("AccentSense Phase 2: Data Pipeline & UK Regional 6-Class Curation")
     print("=" * 65)
 
     if metadata_csv_path and os.path.exists(metadata_csv_path):
-        print(f"[Dataset Source] Loading external Svarah metadata from: {metadata_csv_path}")
+        print(f"[Dataset Source] Loading external metadata from: {metadata_csv_path}")
         raw_df = pd.read_csv(metadata_csv_path)
     else:
-        print("[Dataset Source] Initializing Svarah 11-column representative multi-speaker benchmark...")
-        raw_df = generate_representative_metadata(num_speakers=40, samples_per_speaker=12)
+        print("[Dataset Source] Initializing representative multi-speaker UK accent benchmark...")
+        raw_df = generate_representative_metadata(num_speakers=60, samples_per_speaker=10)
 
-    # Apply 4-Class Regional Labeling
-    raw_df["target"] = raw_df.apply(label_regional_4class, axis=1)
+    # Apply 6-Class Regional Labeling
+    raw_df["target"] = raw_df["accent"]
 
-    # Filter out 'Other' unmapped classes for our focused 4-class MVP
-    df_4class = raw_df[raw_df["target"].isin(REGIONAL_4CLASS_TARGETS)].copy().reset_index(drop=True)
+    # Filter out unmapped classes
+    df_6class = raw_df[raw_df["target"].isin(REGIONAL_6CLASS_TARGETS)].copy().reset_index(drop=True)
 
-    print(f"\n[Filtered Dataset] {len(df_4class)} samples across {df_4class['speaker_id'].nunique()} unique speakers.")
-    print("\n--- Distribution Across 4 Regional Anchors ---")
-    speaker_dist = df_4class.groupby("target")["speaker_id"].nunique()
-    sample_dist = df_4class["target"].value_counts()
+    print(f"\n[Filtered Dataset] {len(df_6class)} samples across {df_6class['speaker_id'].nunique()} unique speakers.")
+    print("\n--- Distribution Across 6 Regional Anchors ---")
+    speaker_dist = df_6class.groupby("target")["speaker_id"].nunique()
+    sample_dist = df_6class["target"].value_counts()
 
     summary_table = pd.DataFrame({
         "Unique_Speakers": speaker_dist,
@@ -110,7 +106,7 @@ def curate_and_export_splits(
     # Execute Speaker-Disjoint Splitting
     print("\n[Splitting] Computing 5-Fold Stratified Group K-Fold on `speaker_id`...")
     train_df, val_df, test_df = build_speaker_disjoint_splits(
-        metadata_df=df_4class,
+        metadata_df=df_6class,
         target_col="target",
         speaker_col="speaker_id",
         n_splits=5,
@@ -131,10 +127,10 @@ def curate_and_export_splits(
     test_spks = set(test_df["speaker_id"].unique())
 
     audit_data = {
-        "dataset_name": "AI4Bharat Svarah 4-Class Regional Benchmark",
-        "regional_targets": REGIONAL_4CLASS_TARGETS,
-        "total_speakers": int(df_4class["speaker_id"].nunique()),
-        "total_samples": int(len(df_4class)),
+        "dataset_name": "UK Regional Accent 6-Class Benchmark",
+        "regional_targets": REGIONAL_6CLASS_TARGETS,
+        "total_speakers": int(df_6class["speaker_id"].nunique()),
+        "total_samples": int(len(df_6class)),
         "splits": {
             "train": {"speakers": len(train_spks), "samples": len(train_df), "speaker_list": sorted(list(train_spks))},
             "val": {"speakers": len(val_spks), "samples": len(val_df), "speaker_list": sorted(list(val_spks))},
@@ -161,7 +157,7 @@ def curate_and_export_splits(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--csv_path", type=str, default=None, help="Path to Svarah metadata CSV")
+    parser.add_argument("--csv_path", type=str, default=None, help="Path to metadata CSV")
     parser.add_argument("--output_dir", type=str, default="data/splits", help="Output directory for CSV splits")
     args = parser.parse_args()
     curate_and_export_splits(metadata_csv_path=args.csv_path, output_dir=args.output_dir)
