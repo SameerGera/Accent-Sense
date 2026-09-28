@@ -126,7 +126,7 @@ def main():
     if not os.path.exists(train_path):
         raise FileNotFoundError(
             f"Train manifest not found at `{train_path}`. "
-            "Run the notebook or curate_data.py first, or use --manifests_dir."
+            "Run download_data.py first, or use --manifests_dir."
         )
 
     train_manifest = load_manifest(train_path)

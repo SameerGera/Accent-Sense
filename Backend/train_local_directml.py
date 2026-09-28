@@ -1,6 +1,6 @@
 """
-AccentSense — Local DirectML Training Pipeline
-Optimized for Windows laptops with AMD Radeon (RDNA / 860M), Intel Arc, or NVIDIA GPUs via DirectML.
+AccentSense — Local CUDA Training Pipeline
+Optimized for NVIDIA GPUs via CUDA.
 
 Usage:
     python train_local_directml.py --epochs 15 --batch_size 4
@@ -73,7 +73,7 @@ def sanitize_manifests(classes):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train AccentSense with DirectML on local laptop.")
+    parser = argparse.ArgumentParser(description="Train AccentSense with CUDA on local GPU.")
     parser.add_argument("--epochs", type=int, default=15, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size (4 recommended for laptop iGPUs)")
     parser.add_argument("--grad_accum", type=int, default=2, help="Gradient accumulation steps (effective batch = batch * accum)")
@@ -110,7 +110,7 @@ def main():
         batch_size=args.batch_size,
         shuffle=True,
         collate_fn=collate_pad,
-        num_workers=0,  # 0 is safest on Windows with DirectML
+        num_workers=0,  # 0 is safest on Windows with CUDA
     )
     val_loader = DataLoader(
         val_ds,

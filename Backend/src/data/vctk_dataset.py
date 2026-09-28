@@ -3,9 +3,9 @@ VCTK + Mozilla Common Voice Dataset Loader for UK Regional Accent Classification
 
 Supports two data sources:
   1. CSTR VCTK Corpus   — 109 speakers, multiple UK accents, 44kHz -> resample 16kHz
-  2. Mozilla Common Voice (en) — used for Irish English and Cockney supplementation
+  2. Mozilla Common Voice (en) — used for Irish English supplementation
 
-7 Target Classes: RP, Scottish, Welsh, Northern, West_Midlands, Cockney, Irish
+6 Target Classes: RP, Scottish, Welsh, Northern, West_Midlands, Irish
 """
 
 import os
@@ -111,7 +111,7 @@ def build_vctk_manifest(
     wav_dir = Path(vctk_wav_dir)
     manifest = []
 
-    for wav_path in sorted(wav_dir.rglob("*.wav")):
+    for wav_path in sorted(wav_dir.rglob("*.wav")) + sorted(wav_dir.rglob("*.flac")):
         # VCTK naming: wav48/p225/p225_001.wav  or  wav16/p225/p225_001.wav
         speaker_id = wav_path.parent.name
         if speaker_id not in speaker_to_class:

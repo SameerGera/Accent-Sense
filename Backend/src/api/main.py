@@ -63,7 +63,7 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Constants - 7 UK Regional Accent Classes
+# Constants - 6 UK Regional Accent Classes
 # ---------------------------------------------------------------------------
 CLASSES = [
     "RP",

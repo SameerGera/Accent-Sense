@@ -16,7 +16,6 @@ import os
 import sys
 import json
 import random
-import subprocess
 from collections import Counter
 
 import numpy as np
@@ -435,7 +434,7 @@ def main():
     # Step 4: Add Common Voice supplement
     manifest = add_common_voice_supplement(manifest)
 
-    # Step 4: Print summary
+    # Step 5: Print summary
     print("\n" + "=" * 60)
     print("Manifest Summary")
     print("=" * 60)
