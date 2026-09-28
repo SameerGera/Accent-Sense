@@ -129,13 +129,15 @@ def build_manifest_from_local_vctk(speaker_info_path):
 
     print(f"Loaded {len(speaker_accents)} speakers from speaker-info.txt")
 
-    # Find wav directory
+    # Find wav directory (VCTK extracts to VCTK-Corpus-0.92/ subdirectory)
     wav_dir = None
-    for pattern in ["data/vctk/wav48_silence_trimmed", "data/vctk/wav48", "data/vctk/wav16"]:
-        full_path = os.path.join(CURRENT_DIR, pattern)
-        if os.path.isdir(full_path):
-            wav_dir = full_path
-            print(f"Found audio directory: {pattern}")
+    for root, dirs, files in os.walk(os.path.join(CURRENT_DIR, "data", "vctk")):
+        for d in dirs:
+            if d in ("wav48_silence_trimmed", "wav48", "wav16"):
+                wav_dir = os.path.join(root, d)
+                print(f"Found audio directory: {wav_dir}")
+                break
+        if wav_dir:
             break
 
     if not wav_dir:
@@ -157,9 +159,10 @@ def build_manifest_from_local_vctk(speaker_info_path):
         class_label = VCTK_ACCENT_MAP[accent]
         class_idx = CLASSES.index(class_label)
 
-        # Find audio files
-        for ext in ["*.wav", "*.WAV", "*.flac", "*.FLAC"]:
-            import glob
+        # Find audio files (VCTK 0.92 uses FLAC in wav48_silence_trimmed/)
+        import glob
+        audio_extensions = ["*.wav", "*.WAV", "*.flac", "*.FLAC", "*.ogg", "*.OGG", "*.mp3", "*.MP3"]
+        for ext in audio_extensions:
             for audio_path in glob.glob(os.path.join(speaker_path, ext)):
                 manifest.append({
                     "path": audio_path,
