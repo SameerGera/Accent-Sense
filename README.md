@@ -71,10 +71,11 @@ pip install -r Backend/requirements.txt
 
 ### 2. Download Data & Build Manifests
 ```bash
+huggingface-cli login
 cd Backend
 python download_data.py
 ```
-This downloads UK accent audio data and creates speaker-disjoint train/val/test splits at `Backend/data/manifests/`.
+This downloads UK accent audio data from Hugging Face (`jspaulsen/vctk`) and creates speaker-disjoint train/val/test splits at `Backend/data/manifests/`.
 
 ### 3. Train the Model (CUDA GPU required)
 ```bash

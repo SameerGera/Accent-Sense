@@ -1,8 +1,9 @@
 """
 AccentSense Data Download & Manifest Builder
-Downloads UK accent audio data and builds speaker-disjoint train/val/test splits.
+Downloads UK accent audio data from Hugging Face and builds speaker-disjoint train/val/test splits.
 
 Usage:
+    huggingface-cli login
     cd Backend
     python download_data.py
 
@@ -16,6 +17,7 @@ import os
 import sys
 import json
 import random
+import subprocess
 from collections import Counter
 
 import numpy as np
@@ -40,143 +42,93 @@ VCTK_ACCENT_MAP = {
     "Irish": "Irish", "Ireland": "Irish", "Dublin": "Irish", "Northern Ireland": "Irish",
 }
 
-VCTK_URL = "https://datashare.is.ed.ac.uk/bitstream/handle/10283/3443/VCTK-Corpus-0.92.zip"
 
-
-def download_vctk():
-    """Attempt to download VCTK corpus. Returns True if successful."""
-    zip_path = os.path.join(CURRENT_DIR, "data", "vctk.zip")
-    os.makedirs(os.path.join(CURRENT_DIR, "data"), exist_ok=True)
-
-    print("=" * 60)
-    print("Attempting VCTK download from University of Edinburgh...")
-    print("=" * 60)
-
+def check_huggingface_login():
+    """Check if user is logged in to Hugging Face, prompt if not."""
     try:
-        import requests
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        with requests.get(VCTK_URL, headers=headers, stream=True, timeout=600) as r:
-            r.raise_for_status()
-            total = int(r.headers.get("content-length", 0))
-            if total < 1_000_000_000:
-                print(f"Server returned small content-length ({total} bytes). Skipping.")
-                return False
-            downloaded = 0
-            with open(zip_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if downloaded % (100 * 1024 * 1024) == 0:
-                        print(f"  Downloaded {downloaded / (1024**3):.2f} GB...")
-            sz = os.path.getsize(zip_path)
-            if sz > 1_000_000_000:
-                print(f"Downloaded: {sz / (1024**3):.2f} GB")
-                return True
-            else:
-                print(f"Download too small ({sz} bytes).")
-                os.remove(zip_path)
-                return False
-    except Exception as e:
-        print(f"Download failed: {e}")
-        if os.path.exists(zip_path):
-            try:
-                os.remove(zip_path)
-            except OSError:
-                pass
-        return False
+        from huggingface_hub import HfApi
+        api = HfApi()
+        api.whoami()
+        print("Already logged in to Hugging Face.")
+    except Exception:
+        print("=" * 60)
+        print("Please login to Hugging Face to download datasets.")
+        print("You can create a token at: https://huggingface.co/settings/tokens")
+        print("=" * 60)
+        subprocess.run([sys.executable, "-m", "huggingface_hub.cli.login"], check=True)
 
 
-def extract_vctk():
-    """Extract VCTK zip. Returns path to speaker-info.txt or None."""
-    zip_path = os.path.join(CURRENT_DIR, "data", "vctk.zip")
-    if not os.path.exists(zip_path):
-        return None
+def build_manifest_from_hf_vctk():
+    """Build manifest by streaming VCTK from Hugging Face (jspaulsen/vctk)."""
+    print("\n" + "=" * 60)
+    print("Loading VCTK from Hugging Face (jspaulsen/vctk)...")
+    print("=" * 60)
 
-    print("Extracting VCTK...")
-    import zipfile
-    extract_dir = os.path.join(CURRENT_DIR, "data", "vctk")
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall(extract_dir)
-    try:
-        os.remove(zip_path)
-    except OSError:
-        pass
+    from datasets import load_dataset
 
-    # Find speaker-info.txt
-    for root, dirs, files in os.walk(extract_dir):
-        if "speaker-info.txt" in files:
-            return os.path.join(root, "speaker-info.txt")
-    return None
-
-
-def build_manifest_from_local_vctk(speaker_info_path):
-    """Build manifest from local VCTK extraction."""
-    print(f"\nBuilding manifest from local VCTK: {speaker_info_path}")
-
-    # Parse speaker info
-    speaker_accents = {}
-    with open(speaker_info_path, "r", encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("ID"):
-                continue
-            parts = line.split()
-            if len(parts) >= 4:
-                speaker_id = parts[0]
-                accent = parts[3]
-                speaker_accents[speaker_id] = accent
-
-    print(f"Loaded {len(speaker_accents)} speakers from speaker-info.txt")
-
-    # Find wav directory (VCTK extracts to VCTK-Corpus-0.92/ subdirectory)
-    wav_dir = None
-    for root, dirs, files in os.walk(os.path.join(CURRENT_DIR, "data", "vctk")):
-        for d in dirs:
-            if d in ("wav48_silence_trimmed", "wav48", "wav16"):
-                wav_dir = os.path.join(root, d)
-                print(f"Found audio directory: {wav_dir}")
-                break
-        if wav_dir:
-            break
-
-    if not wav_dir:
-        print("Could not find wav directory.")
-        return []
-
-    # Build manifest
     manifest = []
-    for speaker_dir in sorted(os.listdir(wav_dir)):
-        speaker_path = os.path.join(wav_dir, speaker_dir)
-        if not os.path.isdir(speaker_path):
-            continue
-        speaker_id = speaker_dir
-        if speaker_id not in speaker_accents:
-            continue
-        accent = speaker_accents[speaker_id]
-        if accent not in VCTK_ACCENT_MAP:
-            continue
-        class_label = VCTK_ACCENT_MAP[accent]
-        class_idx = CLASSES.index(class_label)
+    speaker_counts = Counter()
+    os.makedirs(os.path.join(CURRENT_DIR, "data", "vctk_hf"), exist_ok=True)
 
-        # Find audio files (VCTK 0.92 uses FLAC in wav48_silence_trimmed/)
-        import glob
-        audio_extensions = ["*.wav", "*.WAV", "*.flac", "*.FLAC", "*.ogg", "*.OGG", "*.mp3", "*.MP3"]
-        for ext in audio_extensions:
-            for audio_path in glob.glob(os.path.join(speaker_path, ext)):
-                manifest.append({
-                    "path": audio_path,
-                    "label": class_label,
-                    "speaker": speaker_id,
-                    "class_idx": class_idx,
-                })
+    try:
+        ds = load_dataset("jspaulsen/vctk", split="train", streaming=True)
+        class_samples = Counter()
+        MAX_PER_CLASS = 500
 
-    return manifest
+        for idx, row in enumerate(ds):
+            # Extract fields from HF dataset
+            speaker_id = str(row.get("speaker_id", row.get("speaker", f"spk_{idx}")))
+            accent_tag = str(row.get("accent", row.get("region", row.get("accents", ""))))
+            audio = row.get("audio", row.get("speech", {}))
+
+            if not audio:
+                continue
+
+            # Map accent to class
+            cls = VCTK_ACCENT_MAP.get(accent_tag)
+            if not cls:
+                for k, v in VCTK_ACCENT_MAP.items():
+                    if k.lower() in accent_tag.lower():
+                        cls = v
+                        break
+            if not cls or cls not in CLASSES or cls == "Irish":
+                continue
+            if class_samples[cls] >= MAX_PER_CLASS:
+                continue
+
+            # Save audio
+            spk = speaker_id
+            p = os.path.join(CURRENT_DIR, "data", "vctk_hf", f"{spk}_{idx:05d}.wav")
+            if not os.path.exists(p):
+                sf.write(p, np.array(audio["array"], dtype=np.float32), audio["sampling_rate"])
+
+            manifest.append({
+                "path": p,
+                "label": cls,
+                "speaker": spk,
+                "class_idx": CLASSES.index(cls),
+            })
+            speaker_counts[cls] += 1
+            class_samples[cls] += 1
+
+            if len(manifest) % 150 == 0:
+                print(f"  Downloaded {len(manifest)} samples...")
+
+            if all(class_samples[c] >= MAX_PER_CLASS for c in ["RP", "Scottish", "Welsh", "Northern", "West_Midlands"]):
+                break
+
+        print(f"Built manifest with {len(manifest)} clips from jspaulsen/vctk")
+        return manifest
+
+    except Exception as e:
+        print(f"  jspaulsen/vctk failed: {e}")
+        return []
 
 
 def build_manifest_from_huggingface():
-    """Build manifest by streaming from Hugging Face datasets."""
+    """Build manifest by streaming from Hugging Face datasets (fallback)."""
     print("\n" + "=" * 60)
-    print("Falling back to Hugging Face datasets...")
+    print("Falling back to Hugging Face English Dialects...")
     print("=" * 60)
 
     from datasets import load_dataset
@@ -318,9 +270,8 @@ def add_common_voice_supplement(manifest):
     try:
         from datasets import load_dataset
 
-        # Common Voice accent tags that map to our classes
         IRISH_TAGS = {"Ireland", "Irish", "Dublin", "Northern Ireland"}
-        NORTHERN_TAGS = {"England", "United Kingdom"}  # Broad UK filter, will subsample
+        NORTHERN_TAGS = {"England", "United Kingdom"}
 
         cv_extras = []
         for cv_version in ["mozilla-foundation/common_voice_17_0", "mozilla-foundation/common_voice_13_0"]:
@@ -355,7 +306,6 @@ def add_common_voice_supplement(manifest):
                 print(f"  {cv_version} failed: {ve}")
                 continue
 
-        # Save Common Voice clips
         os.makedirs(os.path.join(CURRENT_DIR, "data", "cv_extras"), exist_ok=True)
         for i, item in enumerate(cv_extras):
             p = os.path.join(CURRENT_DIR, "data", "cv_extras", f"cv_{item['label'].lower()}_{i:04d}.wav")
@@ -416,16 +366,15 @@ def main():
     print("6 UK Regional Accent Classes")
     print("=" * 60)
 
-    # Step 1: Try local VCTK download
-    manifest = []
-    if download_vctk():
-        speaker_info = extract_vctk()
-        if speaker_info:
-            manifest = build_manifest_from_local_vctk(speaker_info)
+    # Step 0: Check Hugging Face login
+    check_huggingface_login()
 
-    # Step 2: Fallback to Hugging Face if needed
+    # Step 1: Try jspaulsen/vctk on Hugging Face
+    manifest = build_manifest_from_hf_vctk()
+
+    # Step 2: Fallback to other HF datasets if needed
     if len(manifest) < 100:
-        print(f"\nLocal VCTK yielded only {len(manifest)} samples. Using Hugging Face...")
+        print(f"\njspaulsen/vctk yielded only {len(manifest)} samples. Using fallback...")
         manifest = build_manifest_from_huggingface()
 
     # Step 3: Add Irish supplement
@@ -445,14 +394,14 @@ def main():
     for cls in CLASSES:
         print(f"  {cls:<15}: {speaker_counts.get(cls, 0):5d}")
 
-    # Step 5: Create speaker-disjoint splits
+    # Step 6: Create speaker-disjoint splits
     print("\nCreating speaker-disjoint splits...")
     train, val, test = speaker_disjoint_splits(manifest)
     print(f"  Train: {len(train)} samples ({len(set(m['speaker'] for m in train))} speakers)")
     print(f"  Val:   {len(val)} samples ({len(set(m['speaker'] for m in val))} speakers)")
     print(f"  Test:  {len(test)} samples ({len(set(m['speaker'] for m in test))} speakers)")
 
-    # Step 6: Save manifests
+    # Step 7: Save manifests
     save_manifest(train, os.path.join(CURRENT_DIR, "data", "manifests", "train.json"))
     save_manifest(val, os.path.join(CURRENT_DIR, "data", "manifests", "val.json"))
     save_manifest(test, os.path.join(CURRENT_DIR, "data", "manifests", "test.json"))
