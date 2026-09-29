@@ -1,240 +1,1406 @@
 ﻿"""
-Training and Fine-Tuning Pipeline for WavLM Base+ on UK Regional Accent Classification.
-Ready for Local GPU execution (CUDA / DirectML) or Google Colab.
+AccentSense WavLM training.
 
-Usage:
-    python train_wavlm.py --epochs 20 --batch_size 8 --lr 3e-4
-    python train_wavlm.py --dry_run  # sanity check without training
+Recommended:
+
+    python train_wavlm.py --dry_run
+
+then:
+
+    python train_wavlm.py \
+        --epochs 20 \
+        --batch_size 8
+
+Training strategy:
+
+    Stage 1:
+        WavLM frozen.
+        Train classification head.
+
+    Stage 2:
+        Unfreeze top 2 WavLM blocks.
+
+    Model selection:
+        validation macro-F1
+
+    Final evaluation:
+        untouched test speakers
 """
 
+from __future__ import annotations
+
 import argparse
-import os
-import sys
 import json
-from collections import Counter
+import random
+import sys
+
+from collections import defaultdict
+from pathlib import Path
+
+import numpy as np
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-from transformers import get_cosine_schedule_with_warmup
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 
-# Ensure Backend directory is on Python path
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-if CURRENT_DIR not in sys.path:
-    sys.path.insert(0, CURRENT_DIR)
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+)
 
-from src.data.vctk_dataset import UKAccentDataset, collate_pad, load_manifest
-from src.models.wavlm_classifier import WavLMAccentClassifier
+from torch.utils.data import (
+    DataLoader,
+    Sampler,
+)
 
-# 6 UK Regional Accent Classes
-CLASSES = ("RP", "Scottish", "Welsh", "Northern", "West_Midlands", "Irish")
-N = len(CLASSES)
+from transformers import (
+    get_cosine_schedule_with_warmup,
+)
 
 
-def train_one_epoch(model, dataloader, optimizer, scheduler, criterion, device):
+CURRENT_DIR = Path(
+    __file__
+).resolve().parent
+
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(
+        0,
+        str(CURRENT_DIR),
+    )
+
+
+from src.config import (
+    CLASSES,
+    SAMPLE_RATE,
+    SEGMENT_SECONDS,
+)
+
+from src.data.vctk_dataset import (
+    UKAccentDataset,
+    collate_pad,
+    load_manifest,
+)
+
+from src.models.wavlm_classifier import (
+    WavLMAccentClassifier,
+)
+
+
+# =========================================================
+# Speaker-balanced sampling
+# =========================================================
+
+class SpeakerBalancedSampler(
+    Sampler
+):
+
+    """
+    Sampling procedure:
+
+        choose class uniformly
+        choose speaker uniformly
+        choose utterance uniformly
+
+    Prevents prolific speakers from dominating training.
+    """
+
+    def __init__(
+        self,
+        manifest,
+        num_samples=None,
+        seed=42,
+    ):
+
+        self.seed = seed
+        self.epoch = 0
+
+        self.num_samples = int(
+            num_samples
+            or len(manifest)
+        )
+
+        groups = defaultdict(
+            lambda:
+                defaultdict(list)
+        )
+
+        for index, entry in enumerate(
+            manifest
+        ):
+
+            groups[
+                entry["label"]
+            ][
+                entry["speaker"]
+            ].append(
+                index
+            )
+
+        self.groups = {
+            class_name: dict(
+                speakers
+            )
+
+            for class_name, speakers
+            in groups.items()
+        }
+
+        self.classes = [
+            class_name
+
+            for class_name in CLASSES
+
+            if class_name
+            in self.groups
+        ]
+
+        missing = [
+            class_name
+
+            for class_name in CLASSES
+
+            if class_name
+            not in self.groups
+        ]
+
+        if missing:
+
+            raise ValueError(
+                f"Training manifest "
+                f"missing classes: "
+                f"{missing}"
+            )
+
+    def set_epoch(
+        self,
+        epoch,
+    ):
+
+        self.epoch = int(
+            epoch
+        )
+
+    def __len__(
+        self
+    ):
+
+        return (
+            self.num_samples
+        )
+
+    def __iter__(
+        self
+    ):
+
+        rng = random.Random(
+            self.seed
+            + self.epoch
+        )
+
+        for _ in range(
+            self.num_samples
+        ):
+
+            class_name = rng.choice(
+                self.classes
+            )
+
+            speaker = rng.choice(
+                list(
+                    self.groups[
+                        class_name
+                    ].keys()
+                )
+            )
+
+            yield rng.choice(
+                self.groups[
+                    class_name
+                ][speaker]
+            )
+
+
+def parse_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--model_name",
+        default=
+            "microsoft/wavlm-base-plus",
+    )
+
+    parser.add_argument(
+        "--manifests_dir",
+        default="data/manifests",
+    )
+
+    parser.add_argument(
+        "--output_dir",
+        default="checkpoints",
+    )
+
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=20,
+    )
+
+    parser.add_argument(
+        "--head_only_epochs",
+        type=int,
+        default=3,
+    )
+
+    parser.add_argument(
+        "--unfreeze_top_k",
+        type=int,
+        default=2,
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=8,
+    )
+
+    parser.add_argument(
+        "--lr_head",
+        type=float,
+        default=1e-4,
+    )
+
+    parser.add_argument(
+        "--lr_backbone",
+        type=float,
+        default=1e-5,
+    )
+
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=0.01,
+    )
+
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=4,
+    )
+
+    parser.add_argument(
+        "--segment_seconds",
+        type=float,
+        default=
+            SEGMENT_SECONDS,
+    )
+
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=2,
+    )
+
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+    )
+
+    parser.add_argument(
+        "--label_smoothing",
+        type=float,
+        default=0.05,
+    )
+
+    parser.add_argument(
+        "--dry_run",
+        action="store_true",
+    )
+
+    return parser.parse_args()
+
+
+def set_seed(
+    seed
+):
+
+    random.seed(
+        seed
+    )
+
+    np.random.seed(
+        seed
+    )
+
+    torch.manual_seed(
+        seed
+    )
+
+    if torch.cuda.is_available():
+
+        torch.cuda.manual_seed_all(
+            seed
+        )
+
+
+def sanitize_manifest(
+    entries
+):
+
+    output = []
+
+    for entry in entries:
+
+        if (
+            entry.get(
+                "label"
+            )
+            not in CLASSES
+        ):
+            continue
+
+        entry = dict(
+            entry
+        )
+
+        entry[
+            "class_idx"
+        ] = CLASSES.index(
+            entry["label"]
+        )
+
+        output.append(
+            entry
+        )
+
+    return output
+
+
+def assert_disjoint(
+    train,
+    val,
+    test,
+):
+
+    speaker_sets = {}
+
+    for name, entries in (
+        ("train", train),
+        ("val", val),
+        ("test", test),
+    ):
+
+        speaker_sets[name] = {
+            entry[
+                "speaker"
+            ]
+
+            for entry in entries
+        }
+
+    for left, right in (
+        ("train", "val"),
+        ("train", "test"),
+        ("val", "test"),
+    ):
+
+        overlap = (
+            speaker_sets[left]
+            & speaker_sets[right]
+        )
+
+        if overlap:
+
+            raise RuntimeError(
+                f"Speaker leakage "
+                f"{left}/{right}: "
+                f"{sorted(overlap)[:10]}"
+            )
+
+
+def build_optimizer(
+    model,
+    args,
+):
+
+    head = [
+        parameter
+
+        for parameter
+        in (
+            list(
+                model.asp.parameters()
+            )
+            + list(
+                model.classifier.parameters()
+            )
+        )
+
+        if parameter.requires_grad
+    ]
+
+    backbone = [
+        parameter
+
+        for parameter
+        in model.backbone.parameters()
+
+        if parameter.requires_grad
+    ]
+
+    groups = [
+        {
+            "params": head,
+            "lr": args.lr_head,
+        }
+    ]
+
+    if backbone:
+
+        groups.append(
+            {
+                "params": backbone,
+                "lr":
+                    args.lr_backbone,
+            }
+        )
+
+    return torch.optim.AdamW(
+        groups,
+        weight_decay=
+            args.weight_decay,
+    )
+
+
+def build_scheduler(
+    optimizer,
+    steps,
+):
+
+    steps = max(
+        1,
+        int(steps),
+    )
+
+    return (
+        get_cosine_schedule_with_warmup(
+            optimizer,
+
+            num_warmup_steps=
+                max(
+                    1,
+                    int(
+                        steps
+                        * 0.10
+                    ),
+                ),
+
+            num_training_steps=
+                steps,
+        )
+    )
+
+
+def train_one_epoch(
+    model,
+    loader,
+    optimizer,
+    scheduler,
+    criterion,
+    device,
+    scaler,
+):
+
     model.train()
+
     total_loss = 0.0
-    all_preds, all_labels = [], []
 
-    for wav, labels, mask in dataloader:
-        wav = wav.to(device)
-        mask = mask.to(device)
-        labels = labels.to(device)
+    labels_all = []
+    predictions_all = []
 
-        optimizer.zero_grad()
-        outputs = model(wav, attention_mask=mask)
-        logits = outputs["logits"]
+    use_amp = (
+        device.type
+        == "cuda"
+    )
 
-        loss = criterion(logits, labels)
-        loss.backward()
+    for (
+        waveform,
+        labels,
+        mask,
+    ) in loader:
 
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
+        waveform = waveform.to(
+            device
+        )
+
+        labels = labels.to(
+            device
+        )
+
+        mask = mask.to(
+            device
+        )
+
+        optimizer.zero_grad(
+            set_to_none=True
+        )
+
+        with torch.autocast(
+            device_type=
+                device.type,
+
+            dtype=
+                torch.float16,
+
+            enabled=
+                use_amp,
+        ):
+
+            logits = model(
+                waveform,
+                attention_mask=mask,
+            )["logits"]
+
+            loss = criterion(
+                logits,
+                labels,
+            )
+
+        scaler.scale(
+            loss
+        ).backward()
+
+        scaler.unscale_(
+            optimizer
+        )
+
+        torch.nn.utils.clip_grad_norm_(
+            model.parameters(),
+            1.0,
+        )
+
+        scaler.step(
+            optimizer
+        )
+
+        scaler.update()
+
         scheduler.step()
 
-        total_loss += loss.item() * len(labels)
-        preds = torch.argmax(logits, dim=-1).detach().cpu().tolist()
-        all_preds.extend(preds)
-        all_labels.extend(labels.detach().cpu().tolist())
+        total_loss += (
+            loss.item()
+            * labels.size(0)
+        )
 
-    epoch_loss = total_loss / len(all_labels)
-    acc = accuracy_score(all_labels, all_preds)
-    macro_f1 = f1_score(all_labels, all_preds, average="macro")
-    return epoch_loss, acc, macro_f1
+        labels_all.extend(
+            labels
+            .detach()
+            .cpu()
+            .tolist()
+        )
+
+        predictions_all.extend(
+            logits
+            .argmax(-1)
+            .detach()
+            .cpu()
+            .tolist()
+        )
+
+    return {
+        "loss":
+            total_loss
+            / max(
+                1,
+                len(labels_all),
+            ),
+
+        "acc":
+            accuracy_score(
+                labels_all,
+                predictions_all,
+            ),
+
+        "f1":
+            f1_score(
+                labels_all,
+                predictions_all,
+                average="macro",
+                zero_division=0,
+            ),
+    }
 
 
-def evaluate(model, dataloader, criterion, device):
+@torch.no_grad()
+def evaluate(
+    model,
+    loader,
+    criterion,
+    device,
+    return_predictions=False,
+):
+
     model.eval()
+
     total_loss = 0.0
-    all_preds, all_labels = [], []
 
-    with torch.no_grad():
-        for wav, labels, mask in dataloader:
-            wav = wav.to(device)
-            mask = mask.to(device)
-            labels = labels.to(device)
+    labels_all = []
+    predictions_all = []
 
-            outputs = model(wav, attention_mask=mask)
-            logits = outputs["logits"]
-            loss = criterion(logits, labels)
+    use_amp = (
+        device.type
+        == "cuda"
+    )
 
-            total_loss += loss.item() * len(labels)
-            preds = torch.argmax(logits, dim=-1).cpu().tolist()
-            all_preds.extend(preds)
-            all_labels.extend(labels.cpu().tolist())
+    for (
+        waveform,
+        labels,
+        mask,
+    ) in loader:
 
-    epoch_loss = total_loss / len(all_labels)
-    acc = accuracy_score(all_labels, all_preds)
-    bal_acc = balanced_accuracy_score(all_labels, all_preds)
-    macro_f1 = f1_score(all_labels, all_preds, average="macro")
-    return epoch_loss, acc, bal_acc, macro_f1
+        waveform = waveform.to(
+            device
+        )
+
+        labels = labels.to(
+            device
+        )
+
+        mask = mask.to(
+            device
+        )
+
+        with torch.autocast(
+            device_type=
+                device.type,
+
+            dtype=
+                torch.float16,
+
+            enabled=
+                use_amp,
+        ):
+
+            logits = model(
+                waveform,
+                attention_mask=mask,
+            )["logits"]
+
+            loss = criterion(
+                logits,
+                labels,
+            )
+
+        total_loss += (
+            loss.item()
+            * labels.size(0)
+        )
+
+        labels_all.extend(
+            labels.cpu().tolist()
+        )
+
+        predictions_all.extend(
+            logits
+            .argmax(-1)
+            .cpu()
+            .tolist()
+        )
+
+    metrics = {
+
+        "loss":
+            total_loss
+            / max(
+                1,
+                len(labels_all),
+            ),
+
+        "acc":
+            accuracy_score(
+                labels_all,
+                predictions_all,
+            ),
+
+        "bal_acc":
+            balanced_accuracy_score(
+                labels_all,
+                predictions_all,
+            ),
+
+        "f1":
+            f1_score(
+                labels_all,
+                predictions_all,
+                average="macro",
+                zero_division=0,
+            ),
+    }
+
+    if return_predictions:
+
+        return (
+            metrics,
+            labels_all,
+            predictions_all,
+        )
+
+    return metrics
+
+
+def save_checkpoint(
+    path,
+    model,
+    epoch,
+    val_f1,
+    args,
+):
+
+    torch.save(
+        {
+            "model_state":
+                model.state_dict(),
+
+            "classes":
+                CLASSES,
+
+            "sample_rate":
+                SAMPLE_RATE,
+
+            "segment_seconds":
+                args.segment_seconds,
+
+            "model_name":
+                args.model_name,
+
+            "epoch":
+                epoch,
+
+            "val_f1":
+                val_f1,
+
+            "unfreeze_top_k":
+                args.unfreeze_top_k,
+        },
+
+        path,
+    )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train WavLM Base+ for UK Regional Accent Classification.")
-    parser.add_argument("--model_name", type=str, default="microsoft/wavlm-base-plus")
-    parser.add_argument("--manifests_dir", type=str, default="data/manifests", help="Directory containing JSON manifests")
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--freeze_encoder", action="store_true", default=True)
-    parser.add_argument("--unfreeze_top_k", type=int, default=2)
-    parser.add_argument("--output_dir", type=str, default="./checkpoints")
-    parser.add_argument("--dry_run", action="store_true", default=False, help="Run single batch sanity check")
-    args = parser.parse_args()
 
-    if not torch.cuda.is_available():
+    args = parse_args()
+
+    set_seed(
+        args.seed
+    )
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    if (
+        device.type != "cuda"
+        and not args.dry_run
+    ):
+
+        print(
+            "WARNING: CUDA unavailable. "
+            "Training will be slow."
+        )
+
+    manifest_dir = Path(
+        args.manifests_dir
+    )
+
+    train = sanitize_manifest(
+        load_manifest(
+            manifest_dir
+            / "train.json"
+        )
+    )
+
+    val = sanitize_manifest(
+        load_manifest(
+            manifest_dir
+            / "val.json"
+        )
+    )
+
+    test = sanitize_manifest(
+        load_manifest(
+            manifest_dir
+            / "test.json"
+        )
+    )
+
+    if (
+        not train
+        or not val
+        or not test
+    ):
+
         raise RuntimeError(
-            "CUDA GPU is required for training but was not detected.\n"
-            "Please ensure you have an NVIDIA GPU with CUDA drivers installed.\n"
-            "For Google Colab: Runtime -> Change runtime type -> T4 GPU"
-        )
-    device = torch.device("cuda")
-    print("=" * 65)
-    print("AccentSense: WavLM Base+ UK Accent Classification Training")
-    print(f"Device: {device} ({torch.cuda.get_device_name(0)}) | Model: {args.model_name}")
-    print(f"Classes ({N}): {CLASSES}")
-    print("=" * 65)
-
-    os.makedirs(args.output_dir, exist_ok=True)
-
-    # 1. Load JSON manifests
-    train_path = os.path.join(args.manifests_dir, "train.json")
-    val_path = os.path.join(args.manifests_dir, "val.json")
-
-    if not os.path.exists(train_path):
-        raise FileNotFoundError(
-            f"Train manifest not found at `{train_path}`. "
-            "Run download_data.py first, or use --manifests_dir."
+            "Train/val/test must "
+            "all be non-empty."
         )
 
-    train_manifest = load_manifest(train_path)
-    val_manifest = load_manifest(val_path) if os.path.exists(val_path) else []
+    assert_disjoint(
+        train,
+        val,
+        test,
+    )
 
-    # 2. Sanitize class indices
-    for split_name, split_data in [("train", train_manifest), ("val", val_manifest)]:
-        for e in split_data:
-            if e["label"] in CLASSES:
-                e["class_idx"] = CLASSES.index(e["label"])
+    print(
+        f"Device: {device}"
+    )
 
-    print(f"Loaded Splits -> Train: {len(train_manifest)} samples | Val: {len(val_manifest)} samples")
+    print(
+        "Train / Val / Test clips: "
+        f"{len(train)} / "
+        f"{len(val)} / "
+        f"{len(test)}"
+    )
 
-    # 3. Build Datasets & DataLoaders
-    train_dataset = UKAccentDataset(train_manifest, augment=True)
-    val_dataset = UKAccentDataset(val_manifest, augment=False)
+    print(
+        "Train speakers:",
+        len(
+            {
+                entry["speaker"]
+                for entry in train
+            }
+        ),
+    )
+
+    print(
+        "Val speakers:",
+        len(
+            {
+                entry["speaker"]
+                for entry in val
+            }
+        ),
+    )
+
+    print(
+        "Test speakers:",
+        len(
+            {
+                entry["speaker"]
+                for entry in test
+            }
+        ),
+    )
+
+    train_dataset = UKAccentDataset(
+        train,
+        augment=True,
+        segment_seconds=
+            args.segment_seconds,
+    )
+
+    val_dataset = UKAccentDataset(
+        val,
+        augment=False,
+        segment_seconds=
+            args.segment_seconds,
+    )
+
+    test_dataset = UKAccentDataset(
+        test,
+        augment=False,
+        segment_seconds=
+            args.segment_seconds,
+    )
+
+    sampler = (
+        SpeakerBalancedSampler(
+            train,
+            seed=args.seed,
+        )
+    )
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
-        shuffle=True,
-        collate_fn=collate_pad,
-        num_workers=2,
-        pin_memory=True,
+
+        batch_size=
+            args.batch_size,
+
+        sampler=
+            sampler,
+
+        collate_fn=
+            collate_pad,
+
+        num_workers=
+            args.num_workers,
+
+        pin_memory=
+            (
+                device.type
+                == "cuda"
+            ),
     )
+
     val_loader = DataLoader(
         val_dataset,
-        batch_size=args.batch_size,
+
+        batch_size=
+            args.batch_size,
+
         shuffle=False,
-        collate_fn=collate_pad,
-        num_workers=2,
+
+        collate_fn=
+            collate_pad,
+
+        num_workers=
+            args.num_workers,
+
+        pin_memory=
+            (
+                device.type
+                == "cuda"
+            ),
     )
 
-    # 4. Compute Class Weights for balanced loss
-    class_counts = Counter(e["class_idx"] for e in train_manifest)
-    total_samples = len(train_manifest)
-    weights = [total_samples / (N * class_counts.get(i, 1)) for i in range(N)]
-    class_weights = torch.tensor(weights, dtype=torch.float).to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    test_loader = DataLoader(
+        test_dataset,
+
+        batch_size=
+            args.batch_size,
+
+        shuffle=False,
+
+        collate_fn=
+            collate_pad,
+
+        num_workers=
+            args.num_workers,
+
+        pin_memory=
+            (
+                device.type
+                == "cuda"
+            ),
+    )
+
+    model = (
+        WavLMAccentClassifier(
+
+            pretrained_model_name=
+                args.model_name,
+
+            num_classes=
+                len(CLASSES),
+
+            freeze_encoder=True,
+
+            unfreeze_top_k_layers=0,
+        )
+        .to(
+            device
+        )
+    )
+
+    trainable, total = (
+        model
+        .trainable_parameter_counts()
+    )
+
+    print(
+        "Initial trainable parameters: "
+        f"{trainable:,}/{total:,}"
+    )
 
     if args.dry_run:
-        print("\n[Dry Run Sanity Check]")
-        print(f"Class Weights: {weights}")
-        print(f"Train batches: {len(train_loader)} | Val batches: {len(val_loader)}")
-        print(f"[SUCCESS] Ready for GPU training on {device}.")
-        return
 
-    # 5. Initialize WavLM Model
-    print(f"\n[Model Initialization] Loading {args.model_name}...")
-    model = WavLMAccentClassifier(
-        pretrained_model_name=args.model_name,
-        num_classes=N,
-        freeze_encoder=args.freeze_encoder,
-        unfreeze_top_k_layers=args.unfreeze_top_k,
-    ).to(device)
-
-    # Separate parameter groups for backbone vs head
-    backbone_params = [p for p in model.backbone.parameters() if p.requires_grad]
-    head_params = [p for p in model.asp.parameters()] + [p for p in model.classifier.parameters()]
-
-    optimizer_grouped_parameters = [
-        {"params": head_params, "lr": args.lr},
-    ]
-    if len(backbone_params) > 0:
-        optimizer_grouped_parameters.append({"params": backbone_params, "lr": args.lr / 10})
-
-    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, weight_decay=0.01)
-    total_steps = len(train_loader) * args.epochs
-    scheduler = get_cosine_schedule_with_warmup(
-        optimizer, num_warmup_steps=int(total_steps * 0.1), num_training_steps=total_steps
-    )
-
-    # 6. Training Loop
-    best_val_f1 = 0.0
-    best_checkpoint_path = os.path.join(args.output_dir, "best_wavlm_accentsense.pt")
-
-    print(f"\n[Training Kickoff] Running for {args.epochs} epochs...")
-    for epoch in range(1, args.epochs + 1):
-        train_loss, train_acc, train_f1 = train_one_epoch(
-            model=model,
-            dataloader=train_loader,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            criterion=criterion,
-            device=device,
+        (
+            waveform,
+            labels,
+            mask,
+        ) = next(
+            iter(
+                train_loader
+            )
         )
 
-        val_loss, val_acc, val_bal_acc, val_f1 = evaluate(
-            model=model,
-            dataloader=val_loader,
-            criterion=criterion,
-            device=device,
+        with torch.no_grad():
+
+            output = model(
+                waveform.to(
+                    device
+                ),
+
+                attention_mask=
+                    mask.to(
+                        device
+                    ),
+            )
+
+        print(
+            "Dry-run logits:",
+            tuple(
+                output[
+                    "logits"
+                ].shape
+            ),
         )
 
         print(
-            f"Epoch {epoch:02d}/{args.epochs:02d} | "
-            f"Train Loss: {train_loss:.4f} Acc: {train_acc:.3f} F1: {train_f1:.3f} | "
-            f"Val Loss: {val_loss:.4f} Acc: {val_acc:.3f} BalAcc: {val_bal_acc:.3f} F1: {val_f1:.3f}"
+            "SUCCESS: dataset + "
+            "WavLM forward pass works."
         )
 
-        if val_f1 > best_val_f1:
-            best_val_f1 = val_f1
-            torch.save(model.state_dict(), best_checkpoint_path)
-            print(f"  --> Saved new best checkpoint to: {best_checkpoint_path} (Val Macro-F1: {val_f1:.4f})")
+        return
 
-    print("\n[Training Complete] Model training loop executed successfully.")
-    print(f"  Best Val Macro-F1: {best_val_f1:.4f}")
-    print(f"  Checkpoint: {best_checkpoint_path}")
+    output_dir = Path(
+        args.output_dir
+    )
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    best_path = (
+        output_dir
+        / "best_wavlm_accentsense.pt"
+    )
+
+    criterion = (
+        nn.CrossEntropyLoss(
+            label_smoothing=
+                args.label_smoothing
+        )
+    )
+
+    scaler = (
+        torch.amp.GradScaler(
+            "cuda",
+            enabled=(
+                device.type
+                == "cuda"
+            ),
+        )
+    )
+
+    # =====================================================
+    # Stage 1
+    # =====================================================
+
+    model.freeze_backbone()
+
+    optimizer = build_optimizer(
+        model,
+        args,
+    )
+
+    head_epochs = min(
+        args.head_only_epochs,
+        args.epochs,
+    )
+
+    scheduler = build_scheduler(
+        optimizer,
+
+        len(train_loader)
+        * max(
+            1,
+            head_epochs,
+        ),
+    )
+
+    best_f1 = -1.0
+    bad_epochs = 0
+
+    for epoch in range(
+        1,
+        args.epochs + 1,
+    ):
+
+        # ================================================
+        # Stage 2
+        # ================================================
+
+        if (
+            epoch
+            == head_epochs + 1
+            and epoch <= args.epochs
+        ):
+
+            print(
+                "\n[Stage 2] "
+                f"Unfreezing top "
+                f"{args.unfreeze_top_k} "
+                "WavLM blocks"
+            )
+
+            model.unfreeze_top_k(
+                args.unfreeze_top_k
+            )
+
+            trainable, total = (
+                model
+                .trainable_parameter_counts()
+            )
+
+            print(
+                "Trainable parameters: "
+                f"{trainable:,}/{total:,}"
+            )
+
+            optimizer = build_optimizer(
+                model,
+                args,
+            )
+
+            remaining_epochs = (
+                args.epochs
+                - head_epochs
+            )
+
+            scheduler = (
+                build_scheduler(
+                    optimizer,
+
+                    len(train_loader)
+                    * max(
+                        1,
+                        remaining_epochs,
+                    ),
+                )
+            )
+
+            bad_epochs = 0
+
+        sampler.set_epoch(
+            epoch
+        )
+
+        train_metrics = (
+            train_one_epoch(
+                model,
+                train_loader,
+                optimizer,
+                scheduler,
+                criterion,
+                device,
+                scaler,
+            )
+        )
+
+        val_metrics = evaluate(
+            model,
+            val_loader,
+            criterion,
+            device,
+        )
+
+        print(
+            f"Epoch "
+            f"{epoch:02d}/"
+            f"{args.epochs:02d} | "
+
+            f"Train loss "
+            f"{train_metrics['loss']:.4f} "
+
+            f"acc "
+            f"{train_metrics['acc']:.3f} "
+
+            f"F1 "
+            f"{train_metrics['f1']:.3f} | "
+
+            f"Val loss "
+            f"{val_metrics['loss']:.4f} "
+
+            f"acc "
+            f"{val_metrics['acc']:.3f} "
+
+            f"bal "
+            f"{val_metrics['bal_acc']:.3f} "
+
+            f"F1 "
+            f"{val_metrics['f1']:.3f}"
+        )
+
+        if (
+            val_metrics["f1"]
+            > best_f1 + 1e-4
+        ):
+
+            best_f1 = (
+                val_metrics[
+                    "f1"
+                ]
+            )
+
+            bad_epochs = 0
+
+            save_checkpoint(
+                best_path,
+                model,
+                epoch,
+                best_f1,
+                args,
+            )
+
+            print(
+                "  -> saved best "
+                "checkpoint "
+                f"(macro-F1="
+                f"{best_f1:.4f})"
+            )
+
+        else:
+
+            bad_epochs += 1
+
+        if (
+            epoch > head_epochs
+            and bad_epochs
+            >= args.patience
+        ):
+
+            print(
+                "Early stopping: "
+                f"{args.patience} "
+                "epochs without "
+                "validation-F1 improvement."
+            )
+
+            break
+
+    # =====================================================
+    # Final held-out test
+    # =====================================================
+
+    checkpoint = torch.load(
+        best_path,
+        map_location=device,
+    )
+
+    model.load_state_dict(
+        checkpoint[
+            "model_state"
+        ]
+    )
+
+    print(
+        "\nReloaded best epoch "
+        f"{checkpoint['epoch']} "
+        f"(val F1="
+        f"{checkpoint['val_f1']:.4f})"
+    )
+
+    (
+        test_metrics,
+        true_labels,
+        predictions,
+    ) = evaluate(
+        model,
+        test_loader,
+        criterion,
+        device,
+        return_predictions=True,
+    )
+
+    print(
+        "TEST | "
+        f"loss "
+        f"{test_metrics['loss']:.4f} "
+
+        f"acc "
+        f"{test_metrics['acc']:.3f} "
+
+        f"bal "
+        f"{test_metrics['bal_acc']:.3f} "
+
+        f"macro-F1 "
+        f"{test_metrics['f1']:.3f}"
+    )
+
+    report = classification_report(
+        true_labels,
+        predictions,
+
+        labels=
+            list(
+                range(
+                    len(CLASSES)
+                )
+            ),
+
+        target_names=
+            list(CLASSES),
+
+        output_dict=True,
+
+        zero_division=0,
+    )
+
+    matrix = confusion_matrix(
+        true_labels,
+        predictions,
+
+        labels=
+            list(
+                range(
+                    len(CLASSES)
+                )
+            ),
+    ).tolist()
+
+    report_path = (
+        output_dir
+        / "test_metrics.json"
+    )
+
+    report_path.write_text(
+        json.dumps(
+            {
+                "best_epoch":
+                    checkpoint[
+                        "epoch"
+                    ],
+
+                "best_val_f1":
+                    checkpoint[
+                        "val_f1"
+                    ],
+
+                "test":
+                    test_metrics,
+
+                "classification_report":
+                    report,
+
+                "confusion_matrix":
+                    matrix,
+
+                "classes":
+                    CLASSES,
+            },
+
+            indent=2,
+        ),
+
+        encoding="utf-8",
+    )
+
+    print(
+        f"Test report: "
+        f"{report_path}"
+    )
+
+    print(
+        f"Best model: "
+        f"{best_path}"
+    )
 
 
 if __name__ == "__main__":
