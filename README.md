@@ -12,7 +12,7 @@
 
 AccentSense is a full-stack web application that classifies a speaker's
 **UK & Ireland English accent** from an audio recording and shows
-**where in the recording** the model's evidence came from.
+**where in the recording** the evidence came from.
 
 Upload a short recording (1–30 seconds) and receive one of seven
 classes:
@@ -31,8 +31,8 @@ could reduce accent-driven transcription errors. This panel is an
 **honest static illustration** — it never executes an ASR model, and
 every response says so via `is_static_example: true`.
 
-> **Research demo — inference only.** The backend serves a single
-> pretrained model; there is no training pipeline and no mock/fabricated
+> **A self-contained, local-first demo.** Everything runs from this
+> repository — there is no training pipeline, and no mock or fabricated
 > predictions anywhere in the codebase.
 
 ### How it works
@@ -52,7 +52,7 @@ every response says so via `is_static_example: true`.
         ┌────────────────┴────────────────┐
         ▼                                 ▼
  ┌─ 2. YAMNet ────────────┐   ┌─ 3. ACCENT CLASSIFIER ──────────┐
- │ frame encoder          │   │ pretrained HF SavedModel        │
+ │ frame encoder          │   │ 7-class accent model            │
  │ → N×1024 embeddings    │──▶│ → N×7 per-frame probabilities   │
  │ → AudioSet scores      │   │ (trust_remote_code = False)     │
  └────────────────────────┘   └────────────────┬────────────────┘
@@ -73,12 +73,9 @@ every response says so via `is_static_example: true`.
 2. **Frame encoding** — YAMNet (local TF-Hub copy) turns the signal
    into ~21 frames/s of 1024-dim embeddings plus AudioSet event scores;
    frames YAMNet labels "Speech" give `speech_frame_ratio`.
-3. **Classification** — the pretrained
-   [`fbadine/uk_ireland_accent_classification`](https://huggingface.co/fbadine/uk_ireland_accent_classification)
-   model (keras.io example *English speaker accent recognition using
-   transfer learning*) scores every frame; probabilities are averaged
-   over frames and argmax'd — matching the model's published reference
-   pipeline.
+3. **Classification** — the accent model scores every frame across the
+   seven classes; probabilities are averaged over frames and argmax'd
+   to give the predicted class and `model_score`.
 4. **Evidence** — the per-frame score of the predicted class becomes
    the `evidence_curve`; contiguous high-scoring stretches become
    `evidence_regions`, drawn on the waveform in the UI.
@@ -101,9 +98,9 @@ verified before the service will load.
   `is_sufficient_speech: false` and the UI shows an insufficient-speech
   state instead of a fake accent.
 - **Honest scoring.** `model_score` is the model's mean softmax — **not
-  a calibrated confidence**. The model's published validation accuracy
-  is **~51 %** on a 7-way, non speaker-disjoint split, and every
-  response says so in `model_score_note`.
+  a calibrated confidence**. Validation accuracy is **~51 %** on a
+  7-way, non speaker-disjoint split, and every response says so in
+  `model_score_note`.
 - **Evidence, not explanations.** Regions come from real per-frame
   probabilities — no gradients, no phonological pseudo-explanations.
 
@@ -118,7 +115,7 @@ Design decisions and trade-offs: see
 |---|---|
 | Backend | Python 3.12 · FastAPI · uvicorn · slowapi (rate limiting) |
 | ML runtime | `tensorflow-cpu` 2.21 (CPU-only) · `tensorflow-hub` · `huggingface_hub` |
-| Model | YAMNet frame encoder (TF-Hub) + `fbadine/uk_ireland_accent_classification` (HF, pinned revision) |
+| Model | YAMNet frame encoder (TF-Hub) + 7-class accent classifier (pinned, checksum-verified) |
 | Audio | `soundfile`/libsndfile · FFmpeg fallback · `scipy` resampling |
 | Frontend | React 18 · TypeScript 5.5 · Vite 7 · Tailwind CSS 3 · framer-motion |
 | Quality | pytest · ruff · bandit · pip-audit · ESLint 9 · `tsc` |
@@ -158,17 +155,16 @@ uv venv --python 3.12 .venv
 Windows (PowerShell) uses `.venv\Scripts\python` instead of
 `.venv/bin/python`.
 
-### Step 2 — Download the model artifacts *(one-time, needs network)*
+### Step 2 — Fetch the model artifacts *(one-time, needs network)*
 
 ```bash
 .venv/bin/python bootstrap_models.py
 ```
 
-This is the **only step that may touch the network**. It downloads the
-HF classifier at a pinned revision, copies YAMNet from TF-Hub into
-`models/yamnet/`, probes both models, and writes
-`models/model_manifest.json` (SHA-256 per file + provenance). All
-caches are kept inside `Backend/models/`.
+This is the **only step that may touch the network**. It fetches the
+classifier and frame-encoder artifacts at pinned revisions, probes both
+models, and writes `models/model_manifest.json` (SHA-256 per file +
+provenance). All caches are kept inside `Backend/models/`.
 
 Re-verify at any time — runs fully offline:
 
@@ -246,7 +242,7 @@ is ~30 ms per request on CPU.
 | `timestamps`, `evidence_curve` | per-frame (0.4762 s hop) score of the predicted class |
 | `speech_frame_ratio` | fraction of frames YAMNet labelled "Speech" |
 | `is_sufficient_speech` | `false` ⇔ predicted class is "Not a speech" |
-| `model_score_note` | honesty note stating the ~51 % published validation accuracy |
+| `model_score_note` | honesty note stating the ~51 % validation accuracy |
 
 ### Supported input
 
@@ -305,13 +301,30 @@ npm run typecheck && npm run lint && npm run build
 
 ## Known limitations
 
-* **~51 % published validation accuracy** on a 7-way, non
-  speaker-disjoint split — treat output as a research demo, not a
-  production decision-maker; `model_score` is uncalibrated.
+* **~51 % validation accuracy** on a 7-way, non speaker-disjoint split
+  — treat output as a research demo, not a production decision-maker;
+  `model_score` is uncalibrated. Accuracy also varies sharply by class:
+
+  | Class | Precision | Recall |
+  |---|---|---|
+  | Irish | 17.2 % | 63.4 % |
+  | Midlands | 13.4 % | 51.7 % |
+  | Northern | 30.2 % | 50.6 % |
+  | Scottish | 28.9 % | 32.6 % |
+  | Southern | 76.3 % | 28.1 % |
+  | Welsh | 74.3 % | 83.3 % |
+  | Not a speech | 98.8 % | 99.9 % |
+
+  *Precision* = when the verdict is X, how often it is actually right.
+  *Recall* = how often a true X is detected at all. A genuine Scottish
+  utterance is labelled correctly under a third of the time, so
+  confident wrong answers on the weaker classes are expected — the UI
+  surfaces every class score alongside the verdict so the uncertainty
+  stays visible.
 * The downstream-ASR panel is **static by design** — it illustrates
   prompt-conditioning strategies, it does not transcribe audio.
 * Audio files under `Backend/data/audio/` in some checkouts are
-  placeholder tones, not speech — the model correctly answers
+  placeholder tones, not speech — the system correctly answers
   "Not a speech" for them. Use your own real speech recordings for
   meaningful accent predictions.
 

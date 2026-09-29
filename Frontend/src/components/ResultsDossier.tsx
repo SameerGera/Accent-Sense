@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { listItem, stagger } from '../lib/motion';
 import type { PredictionResponse } from '../lib/types';
 import { accentDisplayName, formatPercent, sortedScores } from '../lib/format';
+import { PUBLISHED_METRICS } from '../lib/modelStats';
 import { RegionInspector } from './RegionInspector';
 
 export interface ResultsDossierProps {
@@ -34,6 +35,7 @@ export function ResultsDossier({
   const scores = sortedScores(prediction.all_scores);
   const regions = prediction.evidence_regions;
   const displayName = accentDisplayName(prediction.predicted_influence);
+  const metrics = PUBLISHED_METRICS[prediction.predicted_influence];
   const others = scores
     .filter(([name]) => name !== prediction.predicted_influence)
     .slice(0, 3)
@@ -89,6 +91,14 @@ export function ResultsDossier({
             >
               Model score
             </div>
+            {metrics && (
+              <div
+                className="font-label-code text-label-code text-on-surface-variant mt-space-xs"
+                title="Published precision: whenever the model gives this verdict, it is correct this share of the time on its validation set."
+              >
+                Published precision {metrics.precision}%
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -106,6 +116,7 @@ export function ResultsDossier({
         >
           {scores.map(([name, prob], idx) => {
             const isTop = name === prediction.predicted_influence;
+            const m = PUBLISHED_METRICS[name];
             return (
               <motion.div
                 key={name}
@@ -121,6 +132,11 @@ export function ResultsDossier({
               >
                 <span
                   className={`font-label-code text-label-code truncate ${isTop ? 'text-primary-container font-semibold' : 'text-on-surface-variant font-medium'}`}
+                  title={
+                    m
+                      ? `Published precision ${m.precision}% · recall ${m.recall}% (validation set)`
+                      : undefined
+                  }
                 >
                   {accentDisplayName(name)}
                 </span>
