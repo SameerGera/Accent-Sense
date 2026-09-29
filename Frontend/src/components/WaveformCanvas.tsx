@@ -6,8 +6,8 @@ export interface WaveformCanvasProps {
   peaks: number[] | null;
   /** Played ratio 0..1 */
   progress: number;
-  /** Optional saliency attribution to overlay after prediction */
-  saliency?: { timestamps: number[]; curve: number[]; duration: number } | null;
+  /** Optional temporal-evidence curve (per-frame model score) to overlay after prediction */
+  evidence?: { timestamps: number[]; curve: number[]; duration: number } | null;
   onSeek: (ratio: number) => void;
   /** Current time / duration for keyboard seek + a11y */
   currentTime: number;
@@ -21,7 +21,7 @@ export interface WaveformCanvasProps {
 export function WaveformCanvas({
   peaks,
   progress,
-  saliency,
+  evidence,
   onSeek,
   currentTime,
   duration,
@@ -75,9 +75,9 @@ export function WaveformCanvas({
       ctx.fillRect(x, y, barWidth, barHeight);
     }
 
-    // Saliency overlay: thin curve along the bottom
-    if (saliency && saliency.timestamps.length > 1 && duration > 0) {
-      const { timestamps, curve } = saliency;
+    // Evidence overlay: per-frame model score as a thin curve along the bottom
+    if (evidence && evidence.timestamps.length > 1 && duration > 0) {
+      const { timestamps, curve } = evidence;
       ctx.beginPath();
       ctx.strokeStyle = isDark ? 'rgba(255,181,156,0.55)' : 'rgba(184,80,40,0.45)';
       ctx.lineWidth = 1;
@@ -90,7 +90,7 @@ export function WaveformCanvas({
       }
       ctx.stroke();
     }
-  }, [peaks, progress, saliency, theme, duration]);
+  }, [peaks, progress, evidence, theme, duration]);
 
   // Redraw on relevant changes
   useEffect(() => {

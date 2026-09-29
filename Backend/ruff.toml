@@ -1,0 +1,40 @@
+# Ruff configuration for the AccentSense backend.
+# Run: .venv/bin/python -m ruff check .
+
+line-length = 100
+target-version = "py312"
+exclude = [".venv", "__pycache__", "docs/archive"]
+
+[lint]
+select = [
+  "E",     # pycodestyle errors
+  "W",     # pycodestyle warnings
+  "F",     # pyflakes
+  "I",     # import sorting
+  "UP",    # pyupgrade
+  "B",     # bugbear
+  "S",     # security (bandit subset)
+  "C4",    # comprehensions
+  "RUF",   # ruff-specific
+  "PL",    # pylint
+  "SIM",   # simplifications
+]
+
+ignore = [
+  "E501",    # long prompt/description strings are intentional
+  "B008",    # FastAPI File()/Form() defaults are the framework idiom
+  "S101",    # assert is used in probes/tests on purpose
+  "S603",    # subprocess: always an argument list, verified by review + bandit
+  "SIM105",  # try/except/pass used deliberately for optional stdout reconfig
+  "PLR0911", # multiple returns read fine here
+  "PLR0912", # bounded branch counts
+  "PLR0913", # argument counts
+  "PLR0915", # statement counts
+  "PLR2004", # HTTP status codes and score thresholds are self-documenting
+  "PLC0415", # deliberate pattern: heavy TF/Hub imports are delayed on purpose
+             # (cache isolation requires src.config to import first; see src/config.py)
+  "PLW0603", # module-level service singleton is intentional
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["S101"]

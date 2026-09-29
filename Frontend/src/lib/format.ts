@@ -11,12 +11,12 @@ export function formatPercent(value: number, digits = 0): string {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
-/** West_Midlands → "West Midlands"; RP → "RP" */
+/** "Not a speech" stays as-is; underscores (legacy keys) become spaces */
 export function accentDisplayName(accent: string): string {
   return accent.replace(/_/g, ' ');
 }
 
-/** Sort all_scores entries descending by probability */
+/** Sort all_scores entries descending by model score */
 export function sortedScores(
   scores: Record<string, number>,
 ): Array<[string, number]> {

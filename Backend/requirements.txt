@@ -1,20 +1,29 @@
-torch>=2.0
-torchaudio>=2.0
-transformers>=4.30
-accelerate
-datasets
-soundfile
-scikit-learn
-pandas
-numpy
-scipy
-captum
-jiwer
-fastapi
-uvicorn
-slowapi
-pydantic
-librosa
-joblib
-tqdm
-requests
+# AccentSense backend runtime dependencies (inference only).
+#
+# Rationale:
+#   - tensorflow-cpu: local CPU inference for the YAMNet frame encoder and the
+#     saved-model accent classifier. No CUDA/NVIDIA requirement.
+#   - tensorflow-hub: loads the vendored YAMNet checkpoint from Backend/models
+#     (never the network; see src/config.py cache isolation).
+#   - huggingface_hub: used ONLY by bootstrap_models.py to fetch the pinned
+#     classifier snapshot. Inference runs with HF_HUB_OFFLINE=1.
+#   - torch / captum / transformers / datasets / scikit-learn are GONE:
+#     they only existed for the removed WavLM training/explainability pipeline.
+#
+# Python: 3.10 - 3.13 (tensorflow 2.21 has no cp314 wheels).
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+slowapi>=0.1.9,<1
+python-multipart>=0.0.9,<1
+tensorflow-cpu>=2.21,<2.22
+tensorflow-hub>=0.16,<0.17
+# <81 REQUIRED: tensorflow_hub imports pkg_resources (removed in setuptools 81+).
+# Accepted residual risk: PYSEC-2026-3447 / CVE-2026-59890 (fixed in 83.0.0)
+# affects MANIFEST.in exclusion matching while BUILDING sdists on macOS APFS;
+# this service never builds sdists and only imports pkg_resources.parse_version.
+setuptools>=70,<81
+huggingface_hub>=0.36,<1
+soundfile>=0.12,<1
+scipy>=1.11,<2  # polyphase resampling to 16 kHz in src/audio/io.py
+numpy>=1.26,<2.3
+jiwer>=3.0,<4

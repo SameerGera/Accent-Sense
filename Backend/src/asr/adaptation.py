@@ -1,56 +1,60 @@
 ﻿"""
-Downstream ASR Adaptation Engine: Prompt-Conditioned Whisper Transcription & WERR Benchmarking.
-Tuned for 6 UK regional accent classes: RP, Scottish, Welsh, Northern, West_Midlands, Irish.
+Downstream ASR adaptation *illustration*: static benchmark data plus the
+Whisper prompt-conditioning templates that would be used.
+
+IMPORTANT — honest semantics: no speech-recognition model is executed in
+this module. The transcripts below are fixed benchmark examples shipped
+with the repository, and the WER/CER figures are computed over those static
+strings only. The endpoint built on top of this
+(``POST /api/downstream-asr``) labels itself as a static illustration.
+
+Class keys match ``src.config.CLASSES`` (minus "Not a speech", which has no
+accent profile): Irish, Midlands, Northern, Scottish, Southern, Welsh.
 """
 
-import os
-import torch
-import numpy as np
-from typing import Dict, List, Any, Optional
+from __future__ import annotations
+
+from typing import Any
+
 import jiwer
 
-# Whisper prompt conditioning prefixes for each UK accent
+# Whisper prompt conditioning templates per accent class.
 REGIONAL_PROMPTS = {
-    "RP": "The following is British English spoken with a Received Pronunciation (RP) accent, standard BBC English.",
-    "Scottish": "The following is Scottish English with rhotic r, monophthong vowels, and the Scottish Vowel Length Rule.",
-    "Welsh": "The following is Welsh English with syllable-timed rhythm, rising-falling intonation, and lengthened penultimate vowels.",
-    "Northern": "The following is Northern English with the FOOT-STRUT merger, short BATH vowels, and glottal stop replacement of intervocalic t.",
-    "West_Midlands": "The following is West Midlands English (Brummie) with fronted FACE and GOAT diphthongs and the characteristic Brummie intonation.",
     "Irish": "The following is Irish English (Hiberno-English) with rhotic r, dental stops for th-sounds, and distinctive GOAT and FACE vowels.",
+    "Midlands": "The following is Midlands English (including Brummie) with fronted FACE and GOAT diphthongs and the characteristic Birmingham intonation.",
+    "Northern": "The following is Northern English with the FOOT-STRUT merger, short BATH vowels, and glottal stop replacement of intervocalic t.",
+    "Scottish": "The following is Scottish English with rhotic r, monophthong vowels, and the Scottish Vowel Length Rule.",
+    "Southern": "The following is Southern English (standard Southern / RP) with non-rhotic pronunciation, long BATH vowels, and intrusive linking r.",
+    "Welsh": "The following is Welsh English with syllable-timed rhythm, rising-falling intonation, and lengthened penultimate vowels.",
     "General": "The following is British English speech.",
 }
 
-# Documented ASR error patterns for each UK accent (unadapted Whisper mistakes)
+# Documented (literature-level) ASR error patterns per accent class.
+# These are illustrative phonetic notes, NOT measured error rates from this
+# repository — no Whisper model is run here.
 PHONETIC_ERROR_PATTERNS = {
-    "RP": [
+    "Irish": [
         {
-            "original_sound": "Intrusive /r/ linking",
-            "unadapted_error": "Linking /r/ between vowels transcribed as a separate word (e.g. 'idea of' -> 'idea r of').",
-            "adapted_correction": "Linking /r/ correctly suppressed in transcription.",
+            "original_sound": "Dental stop /t/ for /th/",
+            "unadapted_error": "Dental stop realisation of /th/ transcribed as /t/ ('the' -> 'de', 'this' -> 'dis', 'think' -> 'tink').",
+            "adapted_correction": "Dental stop correctly mapped to th-orthography.",
         },
-    ],
-    "Scottish": [
         {
             "original_sound": "Rhotic post-vocalic /r/",
-            "unadapted_error": "Rhotic /r/ in coda position causes vowel mis-identification (e.g. 'bird' -> 'burred', 'word' -> 'wurred').",
-            "adapted_correction": "Rhotic coda correctly mapped to standard English spelling.",
-        },
-        {
-            "original_sound": "SVLR vowel duration",
-            "unadapted_error": "Short vowels before voiceless stops mis-transcribed as reduced syllables.",
-            "adapted_correction": "Vowel length normalised to lexical target.",
+            "unadapted_error": "Coda /r/ causes vowel quality confusion similar to Scottish errors.",
+            "adapted_correction": "Rhotic coda mapped to standard spelling.",
         },
     ],
-    "Welsh": [
+    "Midlands": [
         {
-            "original_sound": "Syllable-timed equal duration",
-            "unadapted_error": "Unstressed syllables kept full duration — ASR inserts extra words or syllable boundaries.",
-            "adapted_correction": "Syllable boundaries aligned to lexical rather than duration-based segmentation.",
+            "original_sound": "Fronted FACE/GOAT diphthongs",
+            "unadapted_error": "Fronted onset of FACE diphthong transcribed as DRESS vowel ('late' -> 'let', 'make' -> 'mek').",
+            "adapted_correction": "Fronted diphthong onset mapped to correct FACE lexical set.",
         },
         {
-            "original_sound": "Lengthened penultimate vowel",
-            "unadapted_error": "Long penultimate vowel parsed as vowel + word boundary ('agenda' -> 'agen da').",
-            "adapted_correction": "Penultimate lengthening suppressed in word segmentation.",
+            "original_sound": "Birmingham rising-falling intonation",
+            "unadapted_error": "Declarative sentences with rising-falling pitch transcribed with inserted question marks.",
+            "adapted_correction": "Rising-falling intonation correctly parsed as declarative.",
         },
     ],
     "Northern": [
@@ -65,138 +69,95 @@ PHONETIC_ERROR_PATTERNS = {
             "adapted_correction": "Glottal stop correctly resolved as intervocalic /t/.",
         },
     ],
-    "West_Midlands": [
-        {
-            "original_sound": "Fronted FACE/GOAT diphthongs",
-            "unadapted_error": "Fronted onset of FACE diphthong transcribed as DRESS vowel ('late' -> 'let', 'make' -> 'mek').",
-            "adapted_correction": "Fronted diphthong onset mapped to correct FACE lexical set.",
-        },
-        {
-            "original_sound": "Brummie rising-falling intonation",
-            "unadapted_error": "Declarative sentences with rising-falling pitch transcribed with inserted question marks.",
-            "adapted_correction": "Rising-falling intonation correctly parsed as declarative.",
-        },
-    ],
-    "Irish": [
-        {
-            "original_sound": "Dental stop /t/ for /th/",
-            "unadapted_error": "Dental stop realisation of /th/ transcribed as /t/ ('the' -> 'de', 'this' -> 'dis', 'think' -> 'tink').",
-            "adapted_correction": "Dental stop correctly mapped to th-orthography.",
-        },
+    "Scottish": [
         {
             "original_sound": "Rhotic post-vocalic /r/",
-            "unadapted_error": "Coda /r/ causes vowel quality confusion similar to Scottish errors.",
-            "adapted_correction": "Rhotic coda mapped to standard spelling.",
+            "unadapted_error": "Rhotic /r/ in coda position causes vowel mis-identification (e.g. 'bird' -> 'burred', 'word' -> 'wurred').",
+            "adapted_correction": "Rhotic coda correctly mapped to standard English spelling.",
+        },
+        {
+            "original_sound": "SVLR vowel duration",
+            "unadapted_error": "Short vowels before voiceless stops mis-transcribed as reduced syllables.",
+            "adapted_correction": "Vowel length normalised to lexical target.",
+        },
+    ],
+    "Southern": [
+        {
+            "original_sound": "Intrusive /r/ linking",
+            "unadapted_error": "Linking /r/ between vowels transcribed as a separate word (e.g. 'idea of' -> 'idea r of').",
+            "adapted_correction": "Linking /r/ correctly suppressed in transcription.",
+        },
+    ],
+    "Welsh": [
+        {
+            "original_sound": "Syllable-timed equal duration",
+            "unadapted_error": "Unstressed syllables kept full duration — ASR inserts extra words or syllable boundaries.",
+            "adapted_correction": "Syllable boundaries aligned to lexical rather than duration-based segmentation.",
+        },
+        {
+            "original_sound": "Lengthened penultimate vowel",
+            "unadapted_error": "Long penultimate vowel parsed as vowel + word boundary ('agenda' -> 'agen da').",
+            "adapted_correction": "Penultimate lengthening suppressed in word segmentation.",
         },
     ],
 }
 
-# Benchmark corpus: 6 sentences chosen to trigger accent-specific phonological contrasts
+# Static benchmark corpus: sentences chosen to trigger accent-specific
+# phonological contrasts. baseline/adapted hypotheses are FIXED EXAMPLES —
+# they are not produced by running an ASR model.
 BENCHMARK_CORPUS = {
-    "RP": {
-        "reference": "the path through the grass led past the dance hall to the bath",
-        "baseline_hypothesis": "the path through the grass led past the dance hall to the bath",
-        "adapted_hypothesis": "the path through the grass led past the dance hall to the bath",
+    "Irish": {
+        "reference": "this is the thirty third day since the weather turned colder",
+        "baseline_hypothesis": "dis is de thirty tird day since de wedder turned colder",
+        "adapted_hypothesis": "this is the thirty third day since the weather turned colder",
     },
-    "Scottish": {
-        "reference": "the bird perched on the word carved above the door of the church",
-        "baseline_hypothesis": "the burred perched on the wurred carved above the door of the church",
-        "adapted_hypothesis": "the bird perched on the word carved above the door of the church",
-    },
-    "Welsh": {
-        "reference": "the agenda for the meeting covers the agenda items in careful order",
-        "baseline_hypothesis": "the agen da for the meeting covers the agen da items in careful order",
-        "adapted_hypothesis": "the agenda for the meeting covers the agenda items in careful order",
+    "Midlands": {
+        "reference": "make the cake later and take it to the gate before eight",
+        "baseline_hypothesis": "mek the cek later and tek it to the get before et",
+        "adapted_hypothesis": "make the cake later and take it to the gate before eight",
     },
     "Northern": {
         "reference": "put the butter and the cup of water on the table",
         "baseline_hypothesis": "put the bu er and the cop of wa er on the table",
         "adapted_hypothesis": "put the butter and the cup of water on the table",
     },
-    "West_Midlands": {
-        "reference": "make the cake later and take it to the gate before eight",
-        "baseline_hypothesis": "mek the cek later and tek it to the get before et",
-        "adapted_hypothesis": "make the cake later and take it to the gate before eight",
+    "Scottish": {
+        "reference": "the bird perched on the word carved above the door of the church",
+        "baseline_hypothesis": "the burred perched on the wurred carved above the door of the church",
+        "adapted_hypothesis": "the bird perched on the word carved above the door of the church",
     },
-    "Irish": {
-        "reference": "this is the thirty third day since the weather turned colder",
-        "baseline_hypothesis": "dis is de thirty tird day since de wedder turned colder",
-        "adapted_hypothesis": "this is the thirty third day since the weather turned colder",
+    "Southern": {
+        "reference": "the path through the grass led past the dance hall to the bath",
+        "baseline_hypothesis": "the path through the grass led past the dance hall to the bath",
+        "adapted_hypothesis": "the path through the grass led past the dance hall to the bath",
+    },
+    "Welsh": {
+        "reference": "the agenda for the meeting covers the agenda items in careful order",
+        "baseline_hypothesis": "the agen da for the meeting covers the agen da items in careful order",
+        "adapted_hypothesis": "the agenda for the meeting covers the agenda items in careful order",
     },
 }
 
 
 class WhisperAccentAdaptor:
-    """
-    Prompt conditioning wrapper for OpenAI Whisper ASR models.
-    Conditions the autoregressive text decoder with UK accent priors.
-    """
-    def __init__(
-        self,
-        model_name: str = "openai/whisper-tiny",
-        device: str = "cpu",
-        load_pretrained: bool = False,
-    ):
-        self.model_name = model_name
-        self.device = device
-        self.load_pretrained = load_pretrained
-        self.model = None
-        self.processor = None
+    """Static prompt-conditioning benchmark helper (no ASR model inside).
 
-        if load_pretrained:
-            try:
-                from transformers import WhisperProcessor, WhisperForConditionalGeneration
-                print(f"[WhisperAdaptor] Loading {model_name} on {device.upper()}...")
-                self.processor = WhisperProcessor.from_pretrained(model_name)
-                self.model = WhisperForConditionalGeneration.from_pretrained(model_name).to(device)
-                self.model.eval()
-                print(f"[WhisperAdaptor] {model_name} loaded successfully.")
-            except Exception as e:
-                print(f"[WhisperAdaptor Warning] Could not load pretrained Whisper weights: {e}")
-                self.model = None
+    The constructor takes no model arguments on purpose: this class never
+    downloads or executes a speech-recognition network. ``transcribe()`` and
+    the live-Whisper path were removed together with the torch stack they
+    depended on (see docs/ARCHITECTURE.md).
+    """
 
     def get_prompt(self, regional_accent: str) -> str:
         return REGIONAL_PROMPTS.get(regional_accent, REGIONAL_PROMPTS["General"])
-
-    def transcribe(
-        self,
-        waveform: torch.Tensor,
-        detected_accent: Optional[str] = None,
-        use_prompt: bool = True,
-        sample_rate: int = 16000,
-    ) -> str:
-        if self.model is not None and self.processor is not None:
-            if waveform.dim() > 1:
-                waveform = waveform.squeeze(0)
-            input_features = self.processor(
-                waveform.numpy(),
-                sampling_rate=sample_rate,
-                return_tensors="pt",
-            ).input_features.to(self.device)
-
-            gen_kwargs: Dict[str, Any] = {"language": "en", "task": "transcribe"}
-            if use_prompt and detected_accent:
-                prompt_text = self.get_prompt(detected_accent)
-                prompt_ids = self.processor.get_prompt_ids(prompt_text)
-                gen_kwargs["prompt_ids"] = prompt_ids
-
-            with torch.no_grad():
-                predicted_ids = self.model.generate(input_features, **gen_kwargs)
-
-            return self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
-
-        # Fallback benchmark mode
-        accent_key = detected_accent if detected_accent in BENCHMARK_CORPUS else "Northern"
-        if use_prompt:
-            return BENCHMARK_CORPUS[accent_key]["adapted_hypothesis"]
-        return BENCHMARK_CORPUS[accent_key]["baseline_hypothesis"]
 
     def evaluate_transcriptions(
         self,
         reference: str,
         baseline: str,
         adapted: str,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
+        """WER/CER over the given strings (real computation, static inputs)."""
         ref_norm = reference.lower().strip()
         base_norm = baseline.lower().strip()
         adapt_norm = adapted.lower().strip()
@@ -221,21 +182,21 @@ class WhisperAccentAdaptor:
     def benchmark_sample(
         self,
         regional_accent: str,
-        reference_text: Optional[str] = None,
-        waveform: Optional[torch.Tensor] = None,
-    ) -> Dict[str, Any]:
+        reference_text: str | None = None,
+    ) -> dict[str, Any]:
+        """Return the static benchmark entry for one accent class.
+
+        Unknown accents fall back to the Northern entry (the caller is
+        expected to validate against ``src.config.CLASSES`` first).
+        """
         accent_key = regional_accent if regional_accent in BENCHMARK_CORPUS else "Northern"
         prompt = self.get_prompt(accent_key)
 
         if reference_text is None:
             reference_text = BENCHMARK_CORPUS[accent_key]["reference"]
 
-        if waveform is not None and self.model is not None:
-            baseline_transcript = self.transcribe(waveform, detected_accent=None, use_prompt=False)
-            adapted_transcript = self.transcribe(waveform, detected_accent=accent_key, use_prompt=True)
-        else:
-            baseline_transcript = BENCHMARK_CORPUS[accent_key]["baseline_hypothesis"]
-            adapted_transcript = BENCHMARK_CORPUS[accent_key]["adapted_hypothesis"]
+        baseline_transcript = BENCHMARK_CORPUS[accent_key]["baseline_hypothesis"]
+        adapted_transcript = BENCHMARK_CORPUS[accent_key]["adapted_hypothesis"]
 
         metrics = self.evaluate_transcriptions(
             reference=reference_text,

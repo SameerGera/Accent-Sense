@@ -7,7 +7,7 @@ export interface AudioPlayerProps {
   player: AudioPlayerApi;
   peaks: number[] | null;
   fileName: string;
-  saliency?: { timestamps: number[]; curve: number[]; duration: number } | null;
+  evidence?: { timestamps: number[]; curve: number[]; duration: number } | null;
   onAnalyze: () => void;
   analyzing: boolean;
   canAnalyze: boolean;
@@ -17,7 +17,7 @@ export function AudioPlayer({
   player,
   peaks,
   fileName,
-  saliency,
+  evidence,
   onAnalyze,
   analyzing,
   canAnalyze,
@@ -73,7 +73,7 @@ export function AudioPlayer({
       <WaveformCanvas
         peaks={peaks}
         progress={duration > 0 ? currentTime / duration : 0}
-        saliency={saliency}
+        evidence={evidence}
         onSeek={player.seekRatio}
         currentTime={currentTime}
         duration={duration}

@@ -12,6 +12,9 @@ export interface ASRComparisonProps {
 export function ASRComparison({ asr, accent, onRetry }: ASRComparisonProps) {
   const { data, loading, error } = asr;
 
+  // Nothing requested (e.g. prediction was "Not a speech") → render nothing.
+  if (!data && !loading && !error) return null;
+
   return (
     <motion.section
       className="space-y-space-md no-print"
@@ -26,7 +29,7 @@ export function ASRComparison({ asr, accent, onRetry }: ASRComparisonProps) {
           Speech recognition
         </h3>
         <span className="font-label-code text-label-code text-on-surface-variant">
-          Whisper · prompt conditioning
+          Whisper prompt · static example
         </span>
       </div>
 
@@ -40,7 +43,7 @@ export function ASRComparison({ asr, accent, onRetry }: ASRComparisonProps) {
           <div className="flex items-center gap-space-sm">
             <div className="spinner !w-4 !h-4" />
             <span className="font-body-sm text-body-sm text-on-surface-variant">
-              Running recognition comparison for {accentDisplayName(accent)}…
+              Loading prompt-conditioning example for {accentDisplayName(accent)}…
             </span>
           </div>
           <div className="progress-track">
@@ -121,7 +124,7 @@ export function ASRComparison({ asr, accent, onRetry }: ASRComparisonProps) {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.35 }}
             >
-              <div className="kicker">Phonetic corrections</div>
+              <div className="kicker">Documented phonetic patterns</div>
               <ul className="space-y-1">
                 {data.phonetic_corrections_noted.map((c, i) => (
                   <motion.li
@@ -136,6 +139,11 @@ export function ASRComparison({ asr, accent, onRetry }: ASRComparisonProps) {
                 ))}
               </ul>
             </motion.div>
+          )}
+          {data.is_static_example && (
+            <p className="font-body-sm text-body-sm pt-space-sm border-t border-surface-container-highest text-on-surface-variant">
+              {data.disclaimer}
+            </p>
           )}
         </motion.div>
       )}

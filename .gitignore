@@ -44,8 +44,6 @@ Backend/**/__pycache__/
 *.tar.gz
 *.zip
 Backend/data/*
-!Backend/data/splits/
-!Backend/data/splits/*
 
 # Neural Network Checkpoints & Weights
 Backend/checkpoints/*.pt
@@ -54,6 +52,12 @@ Backend/checkpoints/*.onnx
 Backend/checkpoints/*.joblib
 runs/
 wandb/
+
+# Model artifacts (downloaded by Backend/bootstrap_models.py).
+# The manifest (checksums + provenance) IS committed for review;
+# the gigabytes of binaries are not.
+Backend/models/*
+!Backend/models/model_manifest.json
 
 # Logs & Temporary
 *.log

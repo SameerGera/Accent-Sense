@@ -1,2 +1,3 @@
-"""AccentSense: Explainable Native Language Influence Detection in Indian English Speech."""
-__version__ = "0.1.0"
+"""Project package: configuration, audio IO, models, ASR, API."""
+
+from .config import CLASSES, NON_SPEECH_CLASS, SAMPLE_RATE  # noqa: F401

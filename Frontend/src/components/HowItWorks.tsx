@@ -26,9 +26,12 @@ export function HowItWorks() {
           How this works
         </h5>
         <p className="font-body-md text-body-md leading-relaxed text-on-surface-variant">
-          A WavLM encoder turns your audio into features, classified into seven
-          UK accent regions. Notes highlight which segments drove the estimate.
-          Audio is never stored.
+          A YAMNet frame encoder embeds your audio in ~0.48-second frames;
+          an accent classifier scores each frame across seven classes
+          (Irish, Midlands, Northern, Scottish, Southern, Welsh, and
+          “Not a speech”), averaged into one result. The timeline shows
+          where the model's score was highest — model scores are not
+          calibrated confidences. Audio is never stored.
         </p>
       </div>
     </motion.section>

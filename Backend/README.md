@@ -1,65 +1,115 @@
-# AccentSense: Explainable UK Regional Accent Detection in Speech
+# AccentSense Backend
 
-AccentSense is an explainable speech-processing research framework designed to analyze phonological and prosodic patterns in UK regional accent speech.
+Inference-only service for UK/Ireland accent classification with temporal
+evidence. Serves a pretrained model — **there is no training pipeline and
+no mock predictions** in this codebase.
 
----
-
-## 📌 Review 1 Current Status
-- **Frontend Prototype**: Interactive dashboard (Audio recording/upload, attribution heatmap, regional accent breakdown).
-- **Backend Architecture**: FastAPI REST service with endpoints for inference, temporal saliency extraction, and downstream ASR comparison.
-- **ML Pipeline**: Modular training pipeline supporting Classical Baselines (MFCC + SVM/RF) and Deep Speech Representations (WavLM Base+ with Attentive Statistics Pooling).
-- **Academic Rigor**: Strictly enforced **Speaker-Disjoint Splitting** to eliminate speaker memorization and acoustic leakage.
+**Read `docs/ARCHITECTURE.md` first** — it is the decision record for
+everything below (why YAMNet + a SavedModel, why the old WavLM/Captum
+stack was removed, how honesty guarantees are enforced).
 
 ---
 
-## 📁 Repository Structure
-```
-Accent Sense/
-├── README.md
-├── requirements.txt
-├── curate_data.py             # Phase 2: Dataset curation & speaker-disjoint splitting
-├── train_baseline.py          # Phase 1: Acoustic MFCC + SVM / Random Forest baseline
-├── train_wavlm.py             # Phase 3: WavLM Base+ fine-tuning with ASP
-├── explain_speech.py          # Phase 4: XAI attribution & AUDC verification
-├── downstream_asr.py          # Phase 5: Downstream Whisper adaptation
-├── run_api.py                 # FastAPI service launcher (port 8000)
-├── checkpoints/               # Trained model weights (.pt)
-├── data/splits/               # Speaker-disjoint CSV splits (train, val, test)
-├── notebooks/                 # Google Colab GPU training notebook
-├── reports/                   # Audit reports, XAI faithfulness, ASR benchmarks
-└── src/
-    ├── api/
-    │   └── main.py            # FastAPI service (predict, explain, downstream-asr)
-    ├── data/
-    │   └── dataset.py         # VCTK + Mozilla Common Voice loader with speaker-disjoint splitting
-    ├── explainability/
-    │   └── saliency.py        # Frame-level gradient attribution & phonological mapping
-    └── models/
-        ├── baseline_mfcc.py   # MFCC feature extraction + Scikit-Learn classifiers
-        └── wavlm_classifier.py # WavLM Base+ with Attentive Statistics Pooling
+## Setup
+
+```bash
+# Python 3.10–3.13 required (TensorFlow 2.21 has no cp314 wheels)
+uv venv --python 3.12 .venv
+.venv/bin/python -m pip install -r requirements.txt        # runtime
+.venv/bin/python -m pip install -r requirements-dev.txt    # + tests/lint/security
 ```
 
----
+### 1. Bootstrap model artifacts (the only step that may use the network)
 
-## 🚀 Quickstart
-
-### 1. Environment Setup (Python 3.11 recommended)
-```powershell
-uv venv .venv --python 3.11
-.venv\Scripts\activate
-uv pip install -r requirements.txt
+```bash
+.venv/bin/python bootstrap_models.py          # download + probe + manifest
+.venv/bin/python bootstrap_models.py --check  # offline re-verification
 ```
 
-### 2. Run Baseline Experiment (Phase 1)
-```powershell
-python train_baseline.py
+This fills `Backend/models/` with:
+
+| Path | Content |
+|---|---|
+| `models/uk_ireland_accent_classification/` | HF SavedModel @ pinned revision `ebe681a4…` |
+| `models/yamnet/` | TF-Hub `google/yamnet/1` copy (frame encoder) |
+| `models/model_manifest.json` | SHA-256 per file, provenance, measured frame hop (committed) |
+
+Everything else under `models/` is git-ignored. All caches
+(`HF_HOME`, `HF_HUB_CACHE`, `TFHUB_CACHE_DIR`) point inside `models/`
+and `HF_HUB_OFFLINE=1` is forced before any TF/HF import — normal
+inference never touches the network (enforced by `tests/test_offline.py`).
+
+### 2. Run the API
+
+```bash
+.venv/bin/python run_api.py    # http://localhost:8000  (docs at /docs)
 ```
 
-### 3. Launch FastAPI Backend
-```powershell
-python run_api.py
-```
-Interactive API docs will be available at: `http://localhost:8000/docs`.
+## Endpoints
 
-### 4. Downstream ASR Demonstration
-AccentSense connects regional accent predictions to downstream speech recognition (e.g. OpenAI Whisper prompt conditioning) to evaluate reductions in Word Error Rate (WER).
+| Endpoint | Semantics |
+|---|---|
+| `GET /health` | **Real readiness**: verifies manifest + checksums, loads the models, reports `inference_ready`. 503 when not ready. |
+| `POST /api/predict` | Real inference on the uploaded audio. 4xx for invalid audio (explicit rejection — never truncation), **503 for any model failure** with a generic message; details go to the server log only. |
+| `POST /api/downstream-asr` | Static illustration of Whisper prompt conditioning. `is_static_example: true` + `disclaimer` — no ASR model is executed. Rejects unknown classes and the "Not a speech" state. |
+
+### `POST /api/predict` response (abridged)
+
+```jsonc
+{
+  "predicted_influence": "Northern",        // exact class, never remapped
+  "language_family": "Northern English (Northern England)",
+  "model_score": 0.61,                      // mean softmax over frames — NOT a calibrated confidence
+  "all_scores": { "Irish": …, "Midlands": …, "Northern": …, "Scottish": …,
+                  "Southern": …, "Welsh": …, "Not a speech": … },
+  "evidence_regions": [ { "start_time_sec":…, "end_time_sec":…, "duration_sec":…,
+                          "model_score":…, "label":…, "detail":… } ],
+  "timestamps": […], "evidence_curve": […],  // per-frame score of the predicted class
+  "speech_frame_ratio": 0.93,               // frames YAMNet labelled Speech
+  "is_sufficient_speech": true,             // false ⇔ predicted class is "Not a speech"
+  "model_score_note": "…~51% published validation accuracy… not calibrated…"
+}
+```
+
+Class order is fixed: `Irish, Midlands, Northern, Scottish, Southern,
+Welsh, Not a speech` — enforced in `src/config.py`, in the manifest, and
+against the model output shape at load time.
+
+## Layout
+
+```
+Backend/
+├── bootstrap_models.py      # the ONLY network-allowed component
+├── run_api.py               # uvicorn launcher (port 8000)
+├── requirements.txt         # runtime deps (no torch/captum/transformers)
+├── requirements-dev.txt     # pytest, ruff, bandit, pip-audit
+├── models/                  # artifacts + committed model_manifest.json
+├── src/
+│   ├── config.py            # class taxonomy, paths, cache isolation (imported first, everywhere)
+│   ├── audio/io.py          # secure decode: content sniffing, FFmpeg arg-arrays, no truncation
+│   ├── models/service.py    # load-once singleton: checksums, probes, infer, evidence
+│   ├── asr/adaptation.py    # static prompt-conditioning benchmark data (no ASR executed)
+│   └── api/main.py          # FastAPI endpoints
+├── tests/                   # offline + e2e suite (missing artifacts = FAIL, not skip)
+├── docs/ARCHITECTURE.md     # decision record — read this first
+├── docs/archive/            # superseded research docs (history, not instructions)
+└── AGENTS.md                # roles & standing rules for this repo
+```
+
+## Quality gates
+
+```bash
+.venv/bin/python -m pytest                # full suite (runs the real model)
+.venv/bin/python -m ruff check .          # lint
+.venv/bin/python -m bandit -r src bootstrap_models.py   # security
+.venv/bin/python -m pip_audit -r requirements.txt       # CVE scan
+```
+
+## Operating notes
+
+* CPU-only (`tensorflow-cpu`); no CUDA anywhere.
+* Model failure → 503, never a fabricated answer. If `/health` says
+  `degraded`, run `bootstrap_models.py` and restart the server.
+* The served model's published validation accuracy is ~51 % on a 7-way,
+  non speaker-disjoint split — every response says so via
+  `model_score_note`. Do not present `model_score` as confidence.

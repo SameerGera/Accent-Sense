@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-09-29T13:17:17+00:00",
+  "models": {
+    "yamnet": {
+      "source": "TensorFlow Hub google/yamnet/1 (AudioSet YAMNet)",
+      "handles": [
+        "https://tfhub.dev/google/yamnet/1",
+        "https://www.kaggle.com/models/google/yamnet/frameworks/TfHub"
+      ],
+      "handle_used": "cached:9616fd04ec2360621642ef9455b84f4b668e219e",
+      "license": "Apache-2.0 (TensorFlow models/research/audioset)",
+      "local_path": "yamnet",
+      "files": [
+        {
+          "path": "assets/yamnet_class_map.csv",
+          "sha256": "cdf24d193e196d9e95912a2667051ae203e92a2ba09449218ccb40ef787c6df2",
+          "bytes": 14096
+        },
+        {
+          "path": "saved_model.pb",
+          "sha256": "672af6e1e34fe15a42d45d70217fd39f97e10aef9b0effbf9b0bf7826fccd462",
+          "bytes": 3176321
+        },
+        {
+          "path": "variables/variables.data-00000-of-00001",
+          "sha256": "d6753f22f173b2a8b1ce78918eaae79bf0a41ca61f4cfe9a1b948c97ff094ddc",
+          "bytes": 15077564
+        },
+        {
+          "path": "variables/variables.index",
+          "sha256": "0bc2ca10e56e8a71b96a2cad26adbbabff927e9344fbd2df8ae7275ddf76ae1e",
+          "bytes": 7400
+        }
+      ],
+      "output": {
+        "scores_shape": [
+          null,
+          521
+        ],
+        "embeddings_shape": [
+          null,
+          1024
+        ],
+        "frame_hop_seconds": 0.4762,
+        "frame_hop_source": "measured at bootstrap from 10s/20s inputs (20 / 41 frames)",
+        "speech_class_index": 0,
+        "speech_class_name": "Speech"
+      }
+    },
+    "accent_classifier": {
+      "source": "huggingface:fbadine/uk_ireland_accent_classification",
+      "revision": "ebe681a49e9506acdc4cf5312cb79b291275ab67",
+      "license": "Apache-2.0",
+      "provenance": "Keras example 'English speaker accent recognition using transfer learning' by Fadi Badine (keras.io); trained on OpenSLR-83 (British Isles English Accents, 120 speakers)",
+      "local_path": "uk_ireland_accent_classification",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "63cc880c0843b88200329e805741dd3a44f42c0d758fc58ce44d7b5ead80b026",
+          "bytes": 2502
+        },
+        {
+          "path": "confusion_matrix.png",
+          "sha256": "6bf0c768ae5bc4b4c62d1a3fd1105ba0869d6c74e51508ed4f662f57f5484c02",
+          "bytes": 30909
+        },
+        {
+          "path": "keras_metadata.pb",
+          "sha256": "9833d53eb3907989ef800a83c6c843f06c26d01bc21145c2283ab07d3bfd40e6",
+          "bytes": 17901
+        },
+        {
+          "path": "model.png",
+          "sha256": "0b7ba411db618872650e0a0280b55d40e145d043355f5e7b1b3bf0aa637b548c",
+          "bytes": 55278
+        },
+        {
+          "path": "saved_model.pb",
+          "sha256": "49e731d9cec89d075fd5949fb93ef23e819723ff22af59d97df51b0b6bbe57a4",
+          "bytes": 173714
+        },
+        {
+          "path": "variables/variables.data-00000-of-00001",
+          "sha256": "3b0476ba4a3a2bd0d251507ca1ba45eee1bbd7285a030459885b444e8ed8584e",
+          "bytes": 6156060
+        },
+        {
+          "path": "variables/variables.index",
+          "sha256": "f70f6e85038e1f76865c82afb949c726daea52de44b472f12c7ff88a07c78bf1",
+          "bytes": 2918
+        }
+      ],
+      "input": {
+        "name": "embedding",
+        "shape": [
+          null,
+          1024
+        ],
+        "dtype": "float32"
+      },
+      "output": {
+        "shape": [
+          null,
+          7
+        ],
+        "classes": [
+          "Irish",
+          "Midlands",
+          "Northern",
+          "Scottish",
+          "Southern",
+          "Welsh",
+          "Not a speech"
+        ]
+      },
+      "reference_aggregation": "mean over YAMNet frames, then argmax"
+    }
+  },
+  "compatibility": {
+    "python": "3.12.14",
+    "tensorflow": "2.21.0",
+    "tensorflow_hub": "0.16.1",
+    "numpy": "2.2.6",
+    "huggingface_hub": "0.36.2",
+    "loader": "tf.saved_model.load (Keras-3-safe; no from_pretrained_keras, no trust_remote_code)"
+  }
+}

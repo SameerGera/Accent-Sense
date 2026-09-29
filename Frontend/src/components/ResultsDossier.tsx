@@ -32,7 +32,7 @@ export function ResultsDossier({
   onReset,
 }: ResultsDossierProps) {
   const scores = sortedScores(prediction.all_scores);
-  const regions = prediction.salient_regions;
+  const regions = prediction.evidence_regions;
   const displayName = accentDisplayName(prediction.predicted_influence);
   const others = scores
     .filter(([name]) => name !== prediction.predicted_influence)
@@ -46,7 +46,9 @@ export function ResultsDossier({
       <div
         className="pb-space-lg border-b border-outline-variant"
       >
-        <div className="kicker mb-space-xs">Likely accent</div>
+        <div className="kicker mb-space-xs">
+          {prediction.is_sufficient_speech ? 'Likely accent' : 'Insufficient speech'}
+        </div>
         <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-space-sm">
           <div className="space-y-space-xs">
             <h2
@@ -63,9 +65,12 @@ export function ResultsDossier({
                 </>
               )}
             </p>
-            {prediction.is_mock_prototype && (
-              <span className="chip" title="No trained checkpoint found on the server">
-                Prototype estimate — model not yet trained
+            {!prediction.is_sufficient_speech && (
+              <span
+                className="chip"
+                title="The model's top class was 'Not a speech' — not an accent verdict."
+              >
+                Not enough speech to assign an accent
               </span>
             )}
           </div>
@@ -76,10 +81,13 @@ export function ResultsDossier({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
             >
-              {formatPercent(prediction.confidence)}
+              {formatPercent(prediction.model_score)}
             </motion.div>
-            <div className="font-label-code text-label-code text-on-surface-variant">
-              Confidence
+            <div
+              className="font-label-code text-label-code text-on-surface-variant"
+              title={prediction.model_score_note}
+            >
+              Model score
             </div>
           </div>
         </div>
@@ -144,11 +152,11 @@ export function ResultsDossier({
         </motion.div>
       </div>
 
-      {/* Why this result — numbered rows */}
+      {/* Temporal evidence — numbered rows */}
       {regions.length > 0 && (
         <div className="space-y-space-md">
           <h3 className="font-sans text-headline-sm text-on-surface">
-            Why this result?
+            Temporal evidence
           </h3>
           <motion.div
             className="divide-y divide-outline-variant border-t border-b border-outline-variant"
@@ -168,11 +176,11 @@ export function ResultsDossier({
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <span className="font-body-md text-body-md font-medium text-on-surface">
-                    {region.linguistic_phenomenon}
+                    {region.label}
                   </span>
                 </div>
                 <div className="md:col-span-8 font-body-md text-body-md text-on-surface-variant">
-                  {region.phonetic_explanation}
+                  {region.detail}
                 </div>
               </motion.div>
             ))}
@@ -220,10 +228,15 @@ export function ResultsDossier({
         </div>
       </motion.div>
 
-      {/* Duration footnote */}
-      <p className="font-label-code text-label-code text-on-surface-variant">
-        Sample duration {duration > 0 ? duration.toFixed(1) : '—'}s
-      </p>
+      {/* Duration + score footnotes */}
+      <div className="space-y-space-xs">
+        <p className="font-label-code text-label-code text-on-surface-variant">
+          Sample duration {duration > 0 ? duration.toFixed(1) : '—'}s
+        </p>
+        <p className="font-body-sm text-body-sm text-on-surface-variant">
+          {prediction.model_score_note}
+        </p>
+      </div>
     </section>
   );
 }

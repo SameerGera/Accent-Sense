@@ -1,23 +1,30 @@
 /** Types mirroring Backend Pydantic models in src/api/main.py */
 
-export interface SalientRegion {
+export interface EvidenceRegion {
   start_time_sec: number;
   end_time_sec: number;
   duration_sec: number;
-  salience_score: number;
-  linguistic_phenomenon: string;
-  phonetic_explanation: string;
+  /** Mean per-frame model score for the predicted class in this region. */
+  model_score: number;
+  label: string;
+  detail: string;
 }
 
 export interface PredictionResponse {
-  is_mock_prototype: boolean;
   predicted_influence: string;
   language_family: string;
-  confidence: number;
+  /** Model score for the top class — not a calibrated confidence. */
+  model_score: number;
   all_scores: Record<string, number>;
-  salient_regions: SalientRegion[];
+  evidence_regions: EvidenceRegion[];
   timestamps: number[];
-  saliency_curve: number[];
+  evidence_curve: number[];
+  /** Fraction of frames where YAMNet's top event was Speech. */
+  speech_frame_ratio: number;
+  /** false → predicted class is "Not a speech" (insufficient speech). */
+  is_sufficient_speech: boolean;
+  /** Honest interpretation of model_score, served by the backend. */
+  model_score_note: string;
 }
 
 export interface DownstreamASRResponse {
@@ -26,4 +33,7 @@ export interface DownstreamASRResponse {
   adaptation_strategy: string;
   detected_accent_profile: string;
   phonetic_corrections_noted: string[];
+  /** Always true today: no ASR model is executed for this request. */
+  is_static_example: boolean;
+  disclaimer: string;
 }

@@ -57,10 +57,12 @@ export default function LandingPage() {
     setErrorHidden(false);
   }, [predStatus]);
 
-  // Trigger ASR comparison once per successful prediction
+  // Trigger ASR comparison once per successful prediction (accent only —
+  // "Not a speech" has no accent profile to demonstrate adaptation with)
   useEffect(() => {
     if (predStatus === 'success' && prediction) {
-      const key = `${prediction.predicted_influence}:${prediction.confidence}`;
+      if (!prediction.is_sufficient_speech) return;
+      const key = `${prediction.predicted_influence}:${prediction.model_score}`;
       if (asrLoadedKey.current !== key) {
         asrLoadedKey.current = key;
         void loadAsr(prediction.predicted_influence);
@@ -174,11 +176,11 @@ export default function LandingPage() {
   const seekTo = useCallback((seconds: number) => seek(seconds), [seek]);
 
   const showError = predStatus === 'error' && predError && !errorHidden;
-  const saliency =
+  const evidence =
     prediction && duration > 0
       ? {
           timestamps: prediction.timestamps,
-          curve: prediction.saliency_curve,
+          curve: prediction.evidence_curve,
           duration,
         }
       : null;
@@ -229,7 +231,7 @@ export default function LandingPage() {
                   player={player}
                   peaks={peaks}
                   fileName={file.name}
-                  saliency={saliency}
+                  evidence={evidence}
                   onAnalyze={handleAnalyze}
                   analyzing={predStatus === 'loading'}
                   canAnalyze={predStatus !== 'loading'}

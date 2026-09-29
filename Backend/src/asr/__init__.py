@@ -2,6 +2,6 @@
 Downstream ASR Adaptation Module
 """
 
-from .adaptation import WhisperAccentAdaptor, REGIONAL_PROMPTS, PHONETIC_ERROR_PATTERNS
+from .adaptation import PHONETIC_ERROR_PATTERNS, REGIONAL_PROMPTS, WhisperAccentAdaptor
 
-__all__ = ["WhisperAccentAdaptor", "REGIONAL_PROMPTS", "PHONETIC_ERROR_PATTERNS"]
+__all__ = ["PHONETIC_ERROR_PATTERNS", "REGIONAL_PROMPTS", "WhisperAccentAdaptor"]

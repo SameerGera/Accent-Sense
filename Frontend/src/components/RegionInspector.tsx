@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { listItem, stagger } from '../lib/motion';
-import type { SalientRegion } from '../lib/types';
+import type { EvidenceRegion } from '../lib/types';
 import { formatTime } from '../lib/format';
 
 export interface RegionInspectorProps {
-  regions: SalientRegion[];
+  regions: EvidenceRegion[];
   onSeek: (seconds: number) => void;
 }
 
@@ -78,7 +78,7 @@ export function RegionInspector({ regions, onSeek }: RegionInspectorProps) {
               </span>
             </div>
             <div className="font-body-md text-body-md font-medium text-on-surface">
-              {region.linguistic_phenomenon}
+              {region.label}
             </div>
             <div
               className="font-body-sm text-body-sm mt-1 text-on-surface-variant"
@@ -89,7 +89,7 @@ export function RegionInspector({ regions, onSeek }: RegionInspectorProps) {
                 overflow: 'hidden',
               }}
             >
-              {region.phonetic_explanation}
+              {region.detail}
             </div>
           </motion.button>
         ))}
